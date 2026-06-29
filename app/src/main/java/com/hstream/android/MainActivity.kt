@@ -109,13 +109,26 @@ class MainActivity : AppCompatActivity() {
                 
                 val cdnDomain = jsonResponse.getJSONArray("stream_domains").getString(0)
                 val streamUrl = jsonResponse.getString("stream_url")
-                
                 val mpdUrl = "$cdnDomain/$streamUrl/1080/manifest.mpd"
+                
+                val subPattern = Pattern.compile("href=\"([^\"]+\\.(?:ass|srt|vtt))\"")
+                val subMatcher = subPattern.matcher(html)
+                val subtitles = mutableListOf<Uri>()
+                while (subMatcher.find()) {
+                    var subUrl = subMatcher.group(1)!!
+                    if (subUrl.startsWith("/")) subUrl = "https://hstream.moe$subUrl"
+                    subtitles.add(Uri.parse(subUrl))
+                }
                 
                 // 3. Lanzar intent al hilo principal
                 withContext(Dispatchers.Main) {
                     val intent = Intent(Intent.ACTION_VIEW)
                     intent.setDataAndType(Uri.parse(mpdUrl), "video/*")
+                    
+                    if (subtitles.isNotEmpty()) {
+                        intent.putExtra("subs", subtitles.toTypedArray())
+                    }
+                    
                     startActivity(Intent.createChooser(intent, "Selecciona un reproductor (VLC, MX Player...)"))
                 }
                 
