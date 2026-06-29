@@ -12,9 +12,18 @@ class PersistentCookieJar(context: Context) : CookieJar {
     private val prefs: SharedPreferences = context.getSharedPreferences("CookiePrefs", Context.MODE_PRIVATE)
 
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+        if (cookies.isEmpty()) return
+        
         val domain = url.host
+        val existingCookies = loadForRequest(url).toMutableList()
+        
+        for (newCookie in cookies) {
+            existingCookies.removeAll { it.name == newCookie.name }
+            existingCookies.add(newCookie)
+        }
+        
         val jsonArray = JSONArray()
-        for (cookie in cookies) {
+        for (cookie in existingCookies) {
             val json = JSONObject()
             json.put("name", cookie.name)
             json.put("value", cookie.value)
