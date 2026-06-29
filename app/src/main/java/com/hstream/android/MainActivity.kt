@@ -3,9 +3,12 @@ package com.hstream.android
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.widget.Button
+import android.view.View
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,6 +22,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import org.jsoup.Jsoup
 import java.net.URLDecoder
 import java.util.regex.Pattern
 
@@ -38,20 +42,98 @@ class MainActivity : AppCompatActivity() {
         })
         .build()
 
+    private lateinit var adapter: VideoAdapter
+    private lateinit var progressBar: ProgressBar
+    private var currentPage = 1
+    private var isLoading = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        findViewById<Button>(R.id.btnVideo1).setOnClickListener {
-            playVideo("https://hstream.moe/hentai/chiisana-tsubomi-no-sono-oku-ni-4")
+        progressBar = findViewById(R.id.progressBar)
+        val recyclerView: RecyclerView = findViewById(R.id.recyclerView)
+        
+        adapter = VideoAdapter(mutableListOf()) { url ->
+            playVideo(url)
         }
 
-        findViewById<Button>(R.id.btnVideo2).setOnClickListener {
-            playVideo("https://hstream.moe/hentai/heart-mark-oome-1")
-        }
+        val layoutManager = GridLayoutManager(this, 2)
+        recyclerView.layoutManager = layoutManager
+        recyclerView.adapter = adapter
 
-        findViewById<Button>(R.id.btnVideo3).setOnClickListener {
-            playVideo("https://hstream.moe/hentai/shinsei-futanari-idol-dekatama-kei-1")
+        // Scroll listener for pagination
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if (dy > 0) { // Scrolling down
+                    val visibleItemCount = layoutManager.childCount
+                    val totalItemCount = layoutManager.itemCount
+                    val pastVisibleItems = layoutManager.findFirstVisibleItemPosition()
+
+                    if (!isLoading && (visibleItemCount + pastVisibleItems) >= totalItemCount) {
+                        currentPage++
+                        fetchCatalogPage(currentPage)
+                    }
+                }
+            }
+        })
+
+        // Initial load
+        fetchCatalogPage(currentPage)
+    }
+
+    private fun fetchCatalogPage(page: Int) {
+        isLoading = true
+        if (page == 1) progressBar.visibility = View.VISIBLE
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val url = "https://hstream.moe/search?view=poster&order=recently-released&page=$page"
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Mozilla/5.0")
+                    .build()
+
+                val response = client.newCall(request).execute()
+                val html = response.body?.string() ?: throw Exception("Empty body")
+                
+                // Jsoup parsing
+                val doc = Jsoup.parse(html)
+                val links = doc.select("a[href^=/hentai/], a[href^=https://hstream.moe/hentai/]")
+                
+                val newItems = mutableListOf<VideoItem>()
+                val seenUrls = mutableSetOf<String>()
+
+                for (link in links) {
+                    var itemUrl = link.attr("href")
+                    if (itemUrl.startsWith("/")) itemUrl = "https://hstream.moe$itemUrl"
+                    
+                    if (seenUrls.contains(itemUrl)) continue
+                    seenUrls.add(itemUrl)
+                    
+                    val img = link.selectFirst("img") ?: continue
+                    var posterUrl = img.attr("data-src").ifEmpty { img.attr("src") }
+                    if (posterUrl.isEmpty()) continue
+                    if (posterUrl.startsWith("/")) posterUrl = "https://hstream.moe$posterUrl"
+                    
+                    val p = link.selectFirst("p")
+                    val title = p?.text() ?: img.attr("alt").ifEmpty { "Desconocido" }
+                    
+                    newItems.add(VideoItem(itemUrl, title, posterUrl))
+                }
+
+                withContext(Dispatchers.Main) {
+                    if (page == 1) progressBar.visibility = View.GONE
+                    adapter.addItems(newItems)
+                    isLoading = false
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    if (page == 1) progressBar.visibility = View.GONE
+                    Toast.makeText(this@MainActivity, "Error página $page: ${e.message}", Toast.LENGTH_SHORT).show()
+                    isLoading = false
+                }
+            }
         }
     }
 
@@ -134,7 +216,7 @@ class MainActivity : AppCompatActivity() {
                 
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "Error al reproducir: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }

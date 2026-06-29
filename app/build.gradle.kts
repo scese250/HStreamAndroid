@@ -50,4 +50,13 @@ dependencies {
     
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    
+    // UI
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    
+    // Scraping (Jsoup)
+    implementation("org.jsoup:jsoup:1.17.2")
+    
+    // Image Loading (Coil)
+    implementation("io.coil-kt:coil:2.5.0")
 }
