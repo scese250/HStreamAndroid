@@ -39,7 +39,7 @@ class HomeFragment : Fragment() {
         val recyclerView: RecyclerView = view.findViewById(R.id.recyclerView)
         
         adapter = VideoAdapter(mutableListOf()) { url ->
-            (requireActivity() as MainActivity).playVideo(url)
+            (requireActivity() as MainActivity).handleVideoClick(url)
         }
 
         val layoutManager = GridLayoutManager(context, 2)

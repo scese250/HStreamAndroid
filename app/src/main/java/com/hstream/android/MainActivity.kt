@@ -88,6 +88,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun handleVideoClick(url: String) {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Opciones")
+            .setMessage("¿Qué deseas hacer?")
+            .setPositiveButton("Mirar Capítulo") { _, _ ->
+                playVideo(url)
+            }
+            .setNegativeButton("Ver Serie") { _, _ ->
+                openSeriesFragment(url)
+            }
+            .show()
+    }
+
+    fun openSeriesFragment(url: String) {
+        val fragment = SeriesFragment.newInstance(url)
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment)
+            .addToBackStack(null)
+            .commit()
+        supportActionBar?.title = "Serie"
+    }
+
     fun playVideo(url: String) {
         Toast.makeText(this, "Obteniendo stream...", Toast.LENGTH_SHORT).show()
         

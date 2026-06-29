@@ -42,7 +42,7 @@ class FavsFragment : Fragment() {
         val btnFavsLogin = view.findViewById<Button>(R.id.btnFavsLogin)
         
         adapter = VideoAdapter(mutableListOf()) { url ->
-            (requireActivity() as MainActivity).playVideo(url)
+            (requireActivity() as MainActivity).handleVideoClick(url)
         }
         recyclerViewFavs.layoutManager = GridLayoutManager(requireContext(), 2)
         recyclerViewFavs.adapter = adapter

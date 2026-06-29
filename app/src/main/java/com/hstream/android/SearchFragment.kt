@@ -108,7 +108,7 @@ class SearchFragment : Fragment() {
         val recyclerView: RecyclerView = view.findViewById(R.id.recyclerSearch)
 
         adapter = VideoAdapter(mutableListOf()) { url ->
-            (requireActivity() as MainActivity).playVideo(url)
+            (requireActivity() as MainActivity).handleVideoClick(url)
         }
 
         val layoutManager = GridLayoutManager(context, 2)

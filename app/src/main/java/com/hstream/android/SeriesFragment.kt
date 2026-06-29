@@ -1,0 +1,141 @@
+package com.hstream.android
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.Request
+import org.jsoup.Jsoup
+
+class SeriesFragment : Fragment() {
+
+    private lateinit var adapter: EpisodeAdapter
+    private var seriesUrl: String = ""
+
+    companion object {
+        fun newInstance(url: String): SeriesFragment {
+            val fragment = SeriesFragment()
+            val args = Bundle()
+            args.putString("url", url)
+            fragment.arguments = args
+            return fragment
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        seriesUrl = arguments?.getString("url") ?: ""
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.fragment_series, container, false)
+        
+        val recycler: RecyclerView = view.findViewById(R.id.recyclerSeriesEpisodes)
+        adapter = EpisodeAdapter(mutableListOf()) { url ->
+            (requireActivity() as MainActivity).playVideo(url)
+        }
+        recycler.layoutManager = LinearLayoutManager(requireContext())
+        recycler.adapter = adapter
+        
+        loadSeriesData(view)
+        
+        return view
+    }
+    
+    private fun loadSeriesData(view: View) {
+        if (seriesUrl.isEmpty()) return
+        
+        val imgPoster: ImageView = view.findViewById(R.id.imgSeriesPoster)
+        val txtTitle: TextView = view.findViewById(R.id.txtSeriesTitle)
+        val txtTags: TextView = view.findViewById(R.id.txtSeriesTags)
+        val txtSynopsis: TextView = view.findViewById(R.id.txtSeriesSynopsis)
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val client = (requireActivity() as MainActivity).client
+                val request = Request.Builder()
+                    .url(seriesUrl)
+                    .header("User-Agent", "Mozilla/5.0")
+                    .build()
+                    
+                val response = client.newCall(request).execute()
+                val html = response.body?.string() ?: throw Exception("Empty body")
+                val doc = Jsoup.parse(html)
+                
+                // Extract Title
+                val title = doc.selectFirst("h1")?.text() ?: doc.title()
+                
+                // Extract Poster
+                // HStream series poster is usually the first large img or the one with specific classes
+                var posterUrl = doc.selectFirst(".md\\:w-1\\/4 img")?.attr("src") ?: ""
+                if (posterUrl.isEmpty()) {
+                    posterUrl = doc.selectFirst("img[alt*=$title]")?.attr("src") ?: ""
+                }
+                if (posterUrl.isEmpty()) {
+                    posterUrl = doc.selectFirst("img")?.attr("src") ?: ""
+                }
+                if (posterUrl.startsWith("/")) posterUrl = "https://hstream.moe$posterUrl"
+                
+                // Extract Synopsis
+                val synopsis = doc.select(".prose p").joinToString("\n\n") { it.text() }
+                
+                // Extract Tags
+                val tags = doc.select("a[href*=/search?tags=]").joinToString(" • ") { it.text() }
+                
+                // Extract Episodes
+                val newItems = mutableListOf<VideoItem>()
+                val seenUrls = mutableSetOf<String>()
+                val episodeLinks = doc.select("a[href^=/hentai/], a[href^=https://hstream.moe/hentai/]")
+                
+                for (link in episodeLinks) {
+                    var itemUrl = link.attr("href")
+                    if (itemUrl.startsWith("/")) itemUrl = "https://hstream.moe$itemUrl"
+                    
+                    if (seenUrls.contains(itemUrl)) continue
+                    if (itemUrl == seriesUrl) continue // No incluir la misma serie
+                    
+                    seenUrls.add(itemUrl)
+                    
+                    val img = link.selectFirst("img") ?: continue
+                    var epPosterUrl = img.attr("data-src").ifEmpty { img.attr("src") }
+                    if (epPosterUrl.isEmpty()) continue
+                    if (epPosterUrl.startsWith("/")) epPosterUrl = "https://hstream.moe$epPosterUrl"
+                    
+                    val p = link.selectFirst("p")
+                    val epTitle = p?.text() ?: img.attr("alt").ifEmpty { "Capítulo" }
+                    
+                    newItems.add(VideoItem(itemUrl, epTitle, epPosterUrl))
+                }
+                
+                withContext(Dispatchers.Main) {
+                    txtTitle.text = title
+                    txtTags.text = tags
+                    txtSynopsis.text = synopsis
+                    imgPoster.load(posterUrl) {
+                        crossfade(true)
+                    }
+                    adapter.addItems(newItems)
+                }
+                
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error cargando serie: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+}
