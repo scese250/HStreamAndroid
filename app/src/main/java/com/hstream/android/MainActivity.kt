@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity() {
                 // 3. Lanzar intent al hilo principal
                 withContext(Dispatchers.Main) {
                     val intent = Intent(Intent.ACTION_VIEW)
-                    intent.setDataAndType(Uri.parse(mpdUrl), "application/dash+xml")
+                    intent.setDataAndType(Uri.parse(mpdUrl), "video/*")
                     startActivity(Intent.createChooser(intent, "Selecciona un reproductor (VLC, MX Player...)"))
                 }
                 
