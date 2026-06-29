@@ -151,9 +151,29 @@ class SettingsFragment : Fragment() {
                 // Obtener CSRF token del form de blacklist
                 csrfToken = doc.select("form[action=https://hstream.moe/user/blacklist] input[name=_token]").attr("value")
                 
-                val tags = doc.select("tag").map { it.attr("value") }
+                val tagsInput = doc.selectFirst("input[name=tags]")?.attr("value") ?: ""
                 currentBlacklist.clear()
-                currentBlacklist.addAll(tags)
+                
+                if (tagsInput.startsWith("[")) {
+                    try {
+                        val jsonArray = org.json.JSONArray(tagsInput)
+                        for (i in 0 until jsonArray.length()) {
+                            val obj = jsonArray.getJSONObject(i)
+                            if (obj.has("value")) {
+                                currentBlacklist.add(obj.getString("value"))
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                } else if (tagsInput.isNotEmpty()) {
+                    currentBlacklist.addAll(tagsInput.split(",").map { it.trim() })
+                }
+                
+                if (currentBlacklist.isEmpty()) {
+                    val tags = doc.select("tag").map { it.attr("value") }
+                    currentBlacklist.addAll(tags)
+                }
                 
                 withContext(Dispatchers.Main) {
                     if (currentBlacklist.isEmpty()) {
