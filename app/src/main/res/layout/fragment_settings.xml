@@ -1,191 +1,283 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#121212"
-    android:padding="16dp">
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="REPRODUCTOR DE VIDEO"
-        android:textColor="#BB86FC"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
+    android:background="#121212">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingBottom="16dp"
-        android:gravity="center_vertical"
-        android:baselineAligned="false">
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="REPRODUCTOR DE VIDEO"
+            android:textColor="#BB86FC"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
 
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:paddingBottom="16dp"
+            android:gravity="center_vertical"
+            android:baselineAligned="false">
 
-            <TextView
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Reproductor por Defecto"
+                    android:textColor="#E3E3E3"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Se abrirá automáticamente"
+                    android:textColor="#888888"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <Spinner
+                android:id="@+id/spinnerPlayer"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Reproductor por Defecto"
-                android:textColor="#E3E3E3"
-                android:textSize="16sp" />
+                android:background="#2D2D2D" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Se abrirá automáticamente"
-                android:textColor="#888888"
-                android:textSize="12sp" />
         </LinearLayout>
 
-        <Spinner
-            android:id="@+id/spinnerPlayer"
-            android:layout_width="wrap_content"
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#2D2D2D" />
-
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#333333"
-        android:layout_marginBottom="24dp"/>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="CUENTA DE HSTREAM.MOE"
-        android:textColor="#BB86FC"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:baselineAligned="false">
+            android:text="CUENTA DE HSTREAM.MOE"
+            android:textColor="#BB86FC"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
 
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:baselineAligned="false">
 
-            <TextView
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Estado"
+                    android:textColor="#E3E3E3"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/txtLoginStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No has iniciado sesión"
+                    android:textColor="#888888"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnLogin"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Estado"
-                android:textColor="#E3E3E3"
-                android:textSize="16sp" />
+                android:text="Login"
+                style="?android:attr/borderlessButtonStyle"
+                android:textColor="#BB86FC"
+                android:background="@drawable/outline_button_bg" />
 
-            <TextView
-                android:id="@+id/txtLoginStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="No has iniciado sesión"
-                android:textColor="#888888"
-                android:textSize="12sp" />
         </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333"
+            android:layout_marginVertical="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PRIVACIDAD"
+            android:textColor="#BB86FC"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Bloqueo por Huella / PIN"
+                    android:textColor="#E3E3E3"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Requerido al entrar o volver a la app"
+                    android:textColor="#888888"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <Switch
+                android:id="@+id/switchPrivacy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333"
+            android:layout_marginVertical="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="BLACKLIST"
+            android:textColor="#BB86FC"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/txtBlacklist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cargando..."
+            android:textColor="#888888"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp" />
 
         <Button
-            android:id="@+id/btnLogin"
-            android:layout_width="wrap_content"
+            android:id="@+id/btnEditBlacklist"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Login"
-            style="?android:attr/borderlessButtonStyle"
-            android:textColor="#BB86FC"
-            android:background="@drawable/outline_button_bg" />
+            android:text="Añadir más"
+            android:backgroundTint="#2D2D2D"
+            android:textColor="#BB86FC" />
 
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#333333"
-        android:layout_marginVertical="24dp"/>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="PRIVACIDAD"
-        android:textColor="#BB86FC"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#333333"
+            android:layout_marginVertical="24dp"/>
 
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_weight="1"
+            android:id="@+id/layoutWebsiteDesign"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
-
+            android:orientation="vertical"
+            android:visibility="gone">
+            
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Bloqueo por Huella / PIN"
-                android:textColor="#E3E3E3"
-                android:textSize="16sp" />
+                android:text="WEBSITE DESIGN"
+                android:textColor="#BB86FC"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp" />
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Requerido al entrar o volver a la app"
-                android:textColor="#888888"
-                android:textSize="12sp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Search:"
+                    android:textColor="#E3E3E3" />
+                <Spinner
+                    android:id="@+id/spinnerSearchDesign"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#2D2D2D" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Home Top Row:"
+                    android:textColor="#E3E3E3" />
+                <Spinner
+                    android:id="@+id/spinnerTopDesign"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#2D2D2D" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Home Middle Row:"
+                    android:textColor="#E3E3E3" />
+                <Spinner
+                    android:id="@+id/spinnerMiddleDesign"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="#2D2D2D" />
+            </LinearLayout>
+            
+            <Button
+                android:id="@+id/btnSaveDesign"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="SAVE DESIGN"
+                android:backgroundTint="#BB86FC"
+                android:textColor="#121212" />
         </LinearLayout>
-
-        <Switch
-            android:id="@+id/switchPrivacy"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
+        
     </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#333333"
-        android:layout_marginVertical="24dp"/>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="BLACKLIST"
-        android:textColor="#BB86FC"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
-
-    <TextView
-        android:id="@+id/txtBlacklist"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Cargando..."
-        android:textColor="#888888"
-        android:textSize="14sp"
-        android:layout_marginBottom="16dp" />
-
-    <Button
-        android:id="@+id/btnEditBlacklist"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Añadir más"
-        android:backgroundTint="#2D2D2D"
-        android:textColor="#BB86FC" />
-
-</LinearLayout>
+</ScrollView>

@@ -96,6 +96,10 @@ class SettingsFragment : Fragment() {
         return view
     }
     
+    private var searchDesign = "cover"
+    private var topDesign = "cover"
+    private var middleDesign = "cover"
+
     private fun setupLoginAndBlacklist(view: View) {
         val prefs = requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
         val isLoggedIn = prefs.getBoolean("is_logged_in", false)
@@ -104,6 +108,7 @@ class SettingsFragment : Fragment() {
         val txtLoginStatus = view.findViewById<TextView>(R.id.txtLoginStatus)
         val btnEditBlacklist = view.findViewById<Button>(R.id.btnEditBlacklist)
         val txtBlacklist = view.findViewById<TextView>(R.id.txtBlacklist)
+        val layoutWebsiteDesign = view.findViewById<View>(R.id.layoutWebsiteDesign)
         
         if (isLoggedIn) {
             txtLoginStatus.text = "Sesión Activa"
@@ -118,10 +123,18 @@ class SettingsFragment : Fragment() {
                 startActivity(intent)
             }
             
-            loadBlacklist(txtBlacklist)
+            btnEditBlacklist.visibility = View.VISIBLE
+            layoutWebsiteDesign.visibility = View.VISIBLE
+            
+            setupDesignSpinners(view)
+            loadBlacklist(txtBlacklist, view)
             
             btnEditBlacklist.setOnClickListener {
-                showBlacklistEditor(txtBlacklist)
+                showBlacklistEditor(txtBlacklist, view)
+            }
+            
+            view.findViewById<Button>(R.id.btnSaveDesign).setOnClickListener {
+                saveDesign(view)
             }
             
         } else {
@@ -132,16 +145,27 @@ class SettingsFragment : Fragment() {
             }
             txtBlacklist.text = "Inicia sesión para ver tu blacklist."
             btnEditBlacklist.visibility = View.GONE
+            layoutWebsiteDesign.visibility = View.GONE
         }
     }
     
-    private fun loadBlacklist(txtBlacklist: TextView) {
+    private fun setupDesignSpinners(view: View) {
+        val options = arrayOf("Poster", "Thumbnail")
+        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, options)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        
+        view.findViewById<Spinner>(R.id.spinnerSearchDesign).adapter = adapter
+        view.findViewById<Spinner>(R.id.spinnerTopDesign).adapter = adapter
+        view.findViewById<Spinner>(R.id.spinnerMiddleDesign).adapter = adapter
+    }
+    
+    private fun loadBlacklist(txtBlacklist: TextView, view: View) {
         txtBlacklist.text = "Cargando..."
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val client = (requireActivity() as MainActivity).client
                 
-                // 1. Obtener CSRF
+                // 1. Obtener CSRF y opciones de diseño de la página
                 val reqSettings = Request.Builder()
                     .url("https://hstream.moe/user/settings")
                     .header("User-Agent", "Mozilla/5.0")
@@ -149,7 +173,19 @@ class SettingsFragment : Fragment() {
                 val respSettings = client.newCall(reqSettings).execute()
                 val html = respSettings.body?.string() ?: ""
                 val doc = Jsoup.parse(html)
+                
                 csrfToken = doc.select("form[action=https://hstream.moe/user/blacklist] input[name=_token]").attr("value")
+                if (csrfToken.isEmpty()) {
+                    csrfToken = doc.select("input[name=_token]").firstOrNull()?.attr("value") ?: ""
+                }
+                
+                searchDesign = doc.select("select[name=searchDesign] option[selected]").attr("value")
+                topDesign = doc.select("select[name=topDesign] option[selected]").attr("value")
+                middleDesign = doc.select("select[name=middleDesign] option[selected]").attr("value")
+                
+                if (searchDesign.isEmpty()) searchDesign = "cover"
+                if (topDesign.isEmpty()) topDesign = "cover"
+                if (middleDesign.isEmpty()) middleDesign = "cover"
                 
                 // 2. Obtener tags desde la API JSON oculta
                 val reqApi = Request.Builder()
@@ -180,16 +216,20 @@ class SettingsFragment : Fragment() {
                     } else {
                         txtBlacklist.text = currentBlacklist.joinToString(", ")
                     }
+                    
+                    view.findViewById<Spinner>(R.id.spinnerSearchDesign).setSelection(if (searchDesign == "thumbnail") 1 else 0)
+                    view.findViewById<Spinner>(R.id.spinnerTopDesign).setSelection(if (topDesign == "thumbnail") 1 else 0)
+                    view.findViewById<Spinner>(R.id.spinnerMiddleDesign).setSelection(if (middleDesign == "thumbnail") 1 else 0)
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    txtBlacklist.text = "Error cargando blacklist"
+                    txtBlacklist.text = "Error cargando configuraciones"
                 }
             }
         }
     }
     
-    private fun showBlacklistEditor(txtBlacklist: TextView) {
+    private fun showBlacklistEditor(txtBlacklist: TextView, view: View) {
         val checkedItems = BooleanArray(allBlacklistTags.size)
         for (i in allBlacklistTags.indices) {
             checkedItems[i] = currentBlacklist.contains(allBlacklistTags[i])
@@ -206,13 +246,13 @@ class SettingsFragment : Fragment() {
                 }
             }
             .setPositiveButton("Guardar") { _, _ ->
-                saveBlacklist(txtBlacklist)
+                saveBlacklist(txtBlacklist, view)
             }
             .setNegativeButton("Cancelar", null)
             .show()
     }
     
-    private fun saveBlacklist(txtBlacklist: TextView) {
+    private fun saveBlacklist(txtBlacklist: TextView, view: View) {
         txtBlacklist.text = "Guardando..."
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -241,12 +281,52 @@ class SettingsFragment : Fragment() {
                 
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Blacklist guardado", Toast.LENGTH_SHORT).show()
-                    loadBlacklist(txtBlacklist)
+                    loadBlacklist(txtBlacklist, view)
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "Error al guardar", Toast.LENGTH_SHORT).show()
-                    loadBlacklist(txtBlacklist)
+                    loadBlacklist(txtBlacklist, view)
+                }
+            }
+        }
+    }
+    
+    private fun saveDesign(view: View) {
+        val searchIdx = view.findViewById<Spinner>(R.id.spinnerSearchDesign).selectedItemPosition
+        val topIdx = view.findViewById<Spinner>(R.id.spinnerTopDesign).selectedItemPosition
+        val middleIdx = view.findViewById<Spinner>(R.id.spinnerMiddleDesign).selectedItemPosition
+        
+        val newSearch = if (searchIdx == 1) "thumbnail" else "cover"
+        val newTop = if (topIdx == 1) "thumbnail" else "cover"
+        val newMiddle = if (middleIdx == 1) "thumbnail" else "cover"
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val client = (requireActivity() as MainActivity).client
+                
+                val formBody = FormBody.Builder()
+                    .add("_token", csrfToken)
+                    .add("searchDesign", newSearch)
+                    .add("topDesign", newTop)
+                    .add("middleDesign", newMiddle)
+                    .build()
+                    
+                val req = Request.Builder()
+                    .url("https://hstream.moe/user/settings")
+                    .header("User-Agent", "Mozilla/5.0")
+                    .header("Referer", "https://hstream.moe/user/settings")
+                    .post(formBody)
+                    .build()
+                    
+                client.newCall(req).execute().close()
+                
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Website Design guardado", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error al guardar diseño", Toast.LENGTH_SHORT).show()
                 }
             }
         }
