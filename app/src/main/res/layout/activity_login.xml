@@ -1,63 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="32dp"
-    android:background="#121212"
-    android:gravity="center">
+    android:background="#121212">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Login HStream.moe"
-        android:textColor="#BB86FC"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="32dp" />
-
-    <EditText
-        android:id="@+id/editEmail"
+    <WebView
+        android:id="@+id/loginWebView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Email"
-        android:textColor="#FFFFFF"
-        android:textColorHint="#888888"
-        android:inputType="textEmailAddress"
-        android:backgroundTint="#BB86FC"
-        android:layout_marginBottom="16dp" />
-
-    <EditText
-        android:id="@+id/editPassword"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Password"
-        android:textColor="#FFFFFF"
-        android:textColorHint="#888888"
-        android:inputType="textPassword"
-        android:backgroundTint="#BB86FC"
-        android:layout_marginBottom="24dp" />
-
-    <Button
-        android:id="@+id/btnLogin"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Iniciar Sesión"
-        android:backgroundTint="#BB86FC"
-        android:textColor="#000000"
-        android:textStyle="bold" />
+        android:layout_height="match_parent" />
 
     <ProgressBar
         android:id="@+id/progressLogin"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:visibility="gone" />
+        android:layout_centerInParent="true" />
 
-    <WebView
-        android:id="@+id/hiddenWebView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:visibility="gone" />
-
-</LinearLayout>
+</RelativeLayout>
