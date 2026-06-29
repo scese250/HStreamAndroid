@@ -13,6 +13,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -76,10 +77,9 @@ class MainActivity : AppCompatActivity() {
                 }
                 val eId = matcher.group(1)
                 
-                // Extraer XSRF-TOKEN de las cookies
                 var xsrfToken = ""
-                val host = HttpUrl.parse(url)?.host ?: "hstream.moe"
-                val cookies = client.cookieJar.loadForRequest(HttpUrl.parse("https://hstream.moe")!!)
+                val host = url.toHttpUrlOrNull()?.host ?: "hstream.moe"
+                val cookies = client.cookieJar.loadForRequest("https://hstream.moe".toHttpUrlOrNull()!!)
                 for (cookie in cookies) {
                     if (cookie.name == "XSRF-TOKEN") {
                         xsrfToken = URLDecoder.decode(cookie.value, "UTF-8")
