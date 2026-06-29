@@ -145,6 +145,20 @@ class SettingsFragment : Fragment() {
                     .header("User-Agent", "Mozilla/5.0")
                     .build()
                 val resp = client.newCall(req).execute()
+                
+                // Si fuimos redirigidos al login, la sesión expiró o era inválida
+                if (resp.request.url.encodedPath == "/login") {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Sesión expirada. Vuelve a iniciar sesión.", Toast.LENGTH_LONG).show()
+                        requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).edit().putBoolean("is_logged_in", false).apply()
+                        requireActivity().getSharedPreferences("CookiePrefs", Context.MODE_PRIVATE).edit().clear().apply()
+                        val intent = Intent(context, MainActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                    }
+                    return@launch
+                }
+                
                 val html = resp.body?.string() ?: ""
                 
                 val doc = Jsoup.parse(html)
