@@ -32,20 +32,15 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var drawerLayout: DrawerLayout
 
-    val client = OkHttpClient.Builder()
-        .cookieJar(object : CookieJar {
-            private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
-            override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-                cookieStore[url.host] = cookies.toMutableList()
-            }
-            override fun loadForRequest(url: HttpUrl): List<Cookie> {
-                return cookieStore[url.host] ?: listOf()
-            }
-        })
-        .build()
+    lateinit var client: OkHttpClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        client = OkHttpClient.Builder()
+            .cookieJar(PersistentCookieJar(this))
+            .build()
+            
         setContentView(R.layout.activity_main)
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)

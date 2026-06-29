@@ -1,5 +1,6 @@
 package com.hstream.android
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -9,11 +10,35 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.Button
 import android.widget.Spinner
 import android.widget.Switch
+import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.FormBody
+import okhttp3.Request
+import org.jsoup.Jsoup
 
 class SettingsFragment : Fragment() {
+
+    private val allBlacklistTags = arrayOf(
+        "3D", "Ahegao", "Anal", "BDSM", "Big Breasts", "Blowjob", "Bondage",
+        "Cheating", "Comedy", "Creampie", "Dark Skin", "Defloration",
+        "Demon", "Elf", "Exhibitionism", "Facial", "Fantasy", "Futanari",
+        "Gangbang", "Glasses", "Harem", "Incest", "Inflation", "Lactation",
+        "Loli", "Maid", "Masturbation", "Milf", "Mind Break", "Mind Control",
+        "Monster", "Netorare", "Ntr", "Nurse", "Orgy", "Pregnant", "Rape",
+        "Romance", "Schoolgirl", "Shota", "Succubus", "Swimsuit", "Teacher",
+        "Tentacle", "Threesome", "Toys", "Ugly Bastard", "Vanilla", "Virgin", "Yuri"
+    ) // Abridged standard list for selection
+    
+    private var currentBlacklist = mutableListOf<String>()
+    private var csrfToken = ""
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -66,6 +91,146 @@ class SettingsFragment : Fragment() {
             prefs.edit().putBoolean("privacy_lock", isChecked).apply()
         }
 
+        setupLoginAndBlacklist(view)
+
         return view
+    }
+    
+    private fun setupLoginAndBlacklist(view: View) {
+        val prefs = requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
+        val isLoggedIn = prefs.getBoolean("is_logged_in", false)
+        
+        val btnLogin = view.findViewById<Button>(R.id.btnLogin)
+        val txtLoginStatus = view.findViewById<TextView>(R.id.txtLoginStatus)
+        val btnEditBlacklist = view.findViewById<Button>(R.id.btnEditBlacklist)
+        val txtBlacklist = view.findViewById<TextView>(R.id.txtBlacklist)
+        
+        if (isLoggedIn) {
+            txtLoginStatus.text = "Sesión Activa"
+            btnLogin.text = "Log Out"
+            btnLogin.setOnClickListener {
+                prefs.edit().putBoolean("is_logged_in", false).apply()
+                // Borrar cookies
+                requireActivity().getSharedPreferences("CookiePrefs", Context.MODE_PRIVATE).edit().clear().apply()
+                Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
+                val intent = Intent(context, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
+            }
+            
+            loadBlacklist(txtBlacklist)
+            
+            btnEditBlacklist.setOnClickListener {
+                showBlacklistEditor(txtBlacklist)
+            }
+            
+        } else {
+            txtLoginStatus.text = "No has iniciado sesión"
+            btnLogin.text = "Login"
+            btnLogin.setOnClickListener {
+                startActivity(Intent(context, LoginActivity::class.java))
+            }
+            txtBlacklist.text = "Inicia sesión para ver tu blacklist."
+            btnEditBlacklist.visibility = View.GONE
+        }
+    }
+    
+    private fun loadBlacklist(txtBlacklist: TextView) {
+        txtBlacklist.text = "Cargando..."
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val client = (requireActivity() as MainActivity).client
+                val req = Request.Builder()
+                    .url("https://hstream.moe/user/settings")
+                    .header("User-Agent", "Mozilla/5.0")
+                    .build()
+                val resp = client.newCall(req).execute()
+                val html = resp.body?.string() ?: ""
+                
+                val doc = Jsoup.parse(html)
+                // Obtener CSRF token del form de blacklist
+                csrfToken = doc.select("form[action=https://hstream.moe/user/blacklist] input[name=_token]").attr("value")
+                
+                val tags = doc.select("tag").map { it.attr("value") }
+                currentBlacklist.clear()
+                currentBlacklist.addAll(tags)
+                
+                withContext(Dispatchers.Main) {
+                    if (currentBlacklist.isEmpty()) {
+                        txtBlacklist.text = "Ninguno"
+                    } else {
+                        txtBlacklist.text = currentBlacklist.joinToString(", ")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    txtBlacklist.text = "Error cargando blacklist"
+                }
+            }
+        }
+    }
+    
+    private fun showBlacklistEditor(txtBlacklist: TextView) {
+        val checkedItems = BooleanArray(allBlacklistTags.size)
+        for (i in allBlacklistTags.indices) {
+            checkedItems[i] = currentBlacklist.contains(allBlacklistTags[i])
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Editar Blacklist")
+            .setMultiChoiceItems(allBlacklistTags, checkedItems) { _, which, isChecked ->
+                val tag = allBlacklistTags[which]
+                if (isChecked) {
+                    if (!currentBlacklist.contains(tag)) currentBlacklist.add(tag)
+                } else {
+                    currentBlacklist.remove(tag)
+                }
+            }
+            .setPositiveButton("Guardar") { _, _ ->
+                saveBlacklist(txtBlacklist)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+    
+    private fun saveBlacklist(txtBlacklist: TextView) {
+        txtBlacklist.text = "Guardando..."
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val client = (requireActivity() as MainActivity).client
+                
+                // Tagify usa formato JSON: [{"value":"Tag1"},{"value":"Tag2"}]
+                val tagsJsonBuilder = StringBuilder("[")
+                currentBlacklist.forEachIndexed { index, tag ->
+                    tagsJsonBuilder.append("{\"value\":\"$tag\"}")
+                    if (index < currentBlacklist.size - 1) tagsJsonBuilder.append(",")
+                }
+                tagsJsonBuilder.append("]")
+                
+                val formBody = FormBody.Builder()
+                    .add("_token", csrfToken)
+                    .add("tags", tagsJsonBuilder.toString())
+                    .build()
+                    
+                val req = Request.Builder()
+                    .url("https://hstream.moe/user/blacklist")
+                    .header("User-Agent", "Mozilla/5.0")
+                    .header("Referer", "https://hstream.moe/user/settings")
+                    .post(formBody)
+                    .build()
+                    
+                client.newCall(req).execute().close() // El post hace redirección a veces o devuelve éxito
+                
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Blacklist guardado", Toast.LENGTH_SHORT).show()
+                    loadBlacklist(txtBlacklist)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error al guardar", Toast.LENGTH_SHORT).show()
+                    loadBlacklist(txtBlacklist) // Restaurar
+                }
+            }
+        }
     }
 }

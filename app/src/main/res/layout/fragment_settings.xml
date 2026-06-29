@@ -88,6 +88,7 @@
                 android:textSize="16sp" />
 
             <TextView
+                android:id="@+id/txtLoginStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="No has iniciado sesión"
@@ -96,6 +97,7 @@
         </LinearLayout>
 
         <Button
+            android:id="@+id/btnLogin"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Login"
@@ -153,5 +155,37 @@
             android:layout_height="wrap_content" />
 
     </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#333333"
+        android:layout_marginVertical="24dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="BLACKLIST"
+        android:textColor="#BB86FC"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/txtBlacklist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cargando..."
+        android:textColor="#888888"
+        android:textSize="14sp"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btnEditBlacklist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Añadir más"
+        android:backgroundTint="#2D2D2D"
+        android:textColor="#BB86FC" />
 
 </LinearLayout>

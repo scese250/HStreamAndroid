@@ -1,35 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:background="#121212"
-    android:padding="32dp">
+    android:background="#121212">
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewFavs"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:padding="8dp" />
+
+    <ProgressBar
+        android:id="@+id/progressBarFavs"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/layoutNotLoggedIn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_centerInParent="true"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔒"
+            android:textSize="48sp"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Inicia sesión para ver Favoritos"
+            android:textColor="#E3E3E3"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="24dp"/>
+
+        <Button
+            android:id="@+id/btnFavsLogin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Iniciar Sesión"
+            style="?android:attr/borderlessButtonStyle"
+            android:textColor="#BB86FC"
+            android:paddingHorizontal="32dp"
+            android:background="@drawable/outline_button_bg" />
+
+    </LinearLayout>
+    
     <TextView
+        android:id="@+id/txtEmptyFavs"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="🔒"
-        android:textSize="48sp"
-        android:layout_marginBottom="16dp"/>
+        android:text="No tienes favoritos aún."
+        android:textColor="#888888"
+        android:textSize="16sp"
+        android:layout_centerInParent="true"
+        android:visibility="gone"/>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Inicia sesión para ver Favoritos"
-        android:textColor="#E3E3E3"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="24dp"/>
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Iniciar Sesión"
-        style="?android:attr/borderlessButtonStyle"
-        android:textColor="#BB86FC"
-        android:paddingHorizontal="32dp"
-        android:background="@drawable/outline_button_bg" />
-
-</LinearLayout>
+</RelativeLayout>
