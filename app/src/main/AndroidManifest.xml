@@ -10,7 +10,7 @@
         android:icon="@android:drawable/sym_def_app_icon"
         android:label="HStream Player"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+        android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar">
         
         <activity
             android:name=".MainActivity"
@@ -23,7 +23,7 @@
 
         <activity
             android:name=".LockActivity"
-            android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar"
             android:exported="false" />
     </application>
 
