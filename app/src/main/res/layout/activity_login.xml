@@ -54,4 +54,10 @@
         android:layout_marginTop="16dp"
         android:visibility="gone" />
 
+    <WebView
+        android:id="@+id/hiddenWebView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone" />
+
 </LinearLayout>

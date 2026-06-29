@@ -92,8 +92,6 @@ class FavsFragment : Fragment() {
                 val seenUrls = mutableSetOf<String>()
 
                 for (link in links) {
-                    if (link.hasAttr("class")) continue // Evitar enlaces de texto como el titulo si lo hubiera, nos interesa la card
-
                     var itemUrl = link.attr("href")
                     if (itemUrl.startsWith("/")) itemUrl = "https://hstream.moe$itemUrl"
                     
