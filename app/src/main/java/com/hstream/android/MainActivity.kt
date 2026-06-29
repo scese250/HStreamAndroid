@@ -141,7 +141,26 @@ class MainActivity : AppCompatActivity() {
                 val response2 = client.newCall(request2).execute()
                 val jsonResponse = JSONObject(response2.body?.string() ?: "{}")
                 
-                val cdnDomain = jsonResponse.getJSONArray("stream_domains").getString(0)
+                val domainsArray = jsonResponse.getJSONArray("stream_domains")
+                var cdnDomain = domainsArray.getString(0)
+                
+                // Buscar el primer servidor CDN que esté online
+                val testClient = client.newBuilder()
+                    .connectTimeout(2, java.util.concurrent.TimeUnit.SECONDS)
+                    .build()
+                    
+                for (i in 0 until domainsArray.length()) {
+                    val domain = domainsArray.getString(i)
+                    try {
+                        val testReq = Request.Builder().url("$domain/").head().build()
+                        testClient.newCall(testReq).execute().close()
+                        cdnDomain = domain
+                        break
+                    } catch (e: Exception) {
+                        // Ignorar y probar el siguiente
+                    }
+                }
+                
                 val streamUrl = jsonResponse.getString("stream_url")
                 val mpdUrl = "$cdnDomain/$streamUrl/1080/manifest.mpd"
                 
