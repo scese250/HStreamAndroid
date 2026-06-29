@@ -183,6 +183,21 @@ class SettingsFragment : Fragment() {
                     currentBlacklist.addAll(tags)
                 }
                 
+                // Paracaídas final de Ponytail: si todavía está vacío, buscar en todo el HTML en crudo
+                if (currentBlacklist.isEmpty()) {
+                    val regex = Regex("""\"value\"[ ]*:[ ]*\"([^\"]+)\"""")
+                    val matches = regex.findAll(html)
+                    for (match in matches) {
+                        val tag = match.groupValues[1]
+                        if (allBlacklistTags.contains(tag)) {
+                            currentBlacklist.add(tag)
+                        }
+                    }
+                    val uniqueTags = currentBlacklist.distinct().toMutableList()
+                    currentBlacklist.clear()
+                    currentBlacklist.addAll(uniqueTags)
+                }
+                
                 withContext(Dispatchers.Main) {
                     if (currentBlacklist.isEmpty()) {
                         txtBlacklist.text = "Ninguno"
