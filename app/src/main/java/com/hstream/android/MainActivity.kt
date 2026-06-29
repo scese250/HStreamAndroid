@@ -1,14 +1,17 @@
 package com.hstream.android
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.View
-import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.appcompat.widget.Toolbar
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.fragment.app.Fragment
+import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,122 +25,75 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import org.jsoup.Jsoup
 import java.net.URLDecoder
 import java.util.regex.Pattern
 
 class MainActivity : AppCompatActivity() {
 
-    private val client = OkHttpClient.Builder()
+    lateinit var drawerLayout: DrawerLayout
+
+    val client = OkHttpClient.Builder()
         .cookieJar(object : CookieJar {
             private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
-
             override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
                 cookieStore[url.host] = cookies.toMutableList()
             }
-
             override fun loadForRequest(url: HttpUrl): List<Cookie> {
                 return cookieStore[url.host] ?: listOf()
             }
         })
         .build()
 
-    private lateinit var adapter: VideoAdapter
-    private lateinit var progressBar: ProgressBar
-    private var currentPage = 1
-    private var isLoading = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        progressBar = findViewById(R.id.progressBar)
-        val recyclerView: RecyclerView = findViewById(R.id.recyclerView)
-        
-        adapter = VideoAdapter(mutableListOf()) { url ->
-            playVideo(url)
+        val toolbar: Toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        drawerLayout = findViewById(R.id.drawerLayout)
+        val navView: NavigationView = findViewById(R.id.navigationView)
+
+        val toggle = ActionBarDrawerToggle(
+            this, drawerLayout, toolbar,
+            R.string.navigation_drawer_open, R.string.navigation_drawer_close
+        )
+        drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
+
+        navView.setNavigationItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_home -> replaceFragment(HomeFragment(), "Inicio")
+                R.id.nav_search -> replaceFragment(SearchFragment(), "Buscar / Filtrar")
+                R.id.nav_favs -> replaceFragment(FavsFragment(), "Favoritos")
+                R.id.nav_settings -> replaceFragment(SettingsFragment(), "Configuración")
+            }
+            drawerLayout.closeDrawer(GravityCompat.START)
+            true
         }
 
-        val layoutManager = GridLayoutManager(this, 2)
-        recyclerView.layoutManager = layoutManager
-        recyclerView.adapter = adapter
-
-        // Scroll listener for pagination
-        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (dy > 0) { // Scrolling down
-                    val visibleItemCount = layoutManager.childCount
-                    val totalItemCount = layoutManager.itemCount
-                    val pastVisibleItems = layoutManager.findFirstVisibleItemPosition()
-
-                    if (!isLoading && (visibleItemCount + pastVisibleItems) >= totalItemCount) {
-                        currentPage++
-                        fetchCatalogPage(currentPage)
-                    }
-                }
-            }
-        })
-
-        // Initial load
-        fetchCatalogPage(currentPage)
-    }
-
-    private fun fetchCatalogPage(page: Int) {
-        isLoading = true
-        if (page == 1) progressBar.visibility = View.VISIBLE
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val url = "https://hstream.moe/search?view=poster&order=recently-released&page=$page"
-                val request = Request.Builder()
-                    .url(url)
-                    .header("User-Agent", "Mozilla/5.0")
-                    .build()
-
-                val response = client.newCall(request).execute()
-                val html = response.body?.string() ?: throw Exception("Empty body")
-                
-                // Jsoup parsing
-                val doc = Jsoup.parse(html)
-                val links = doc.select("a[href^=/hentai/], a[href^=https://hstream.moe/hentai/]")
-                
-                val newItems = mutableListOf<VideoItem>()
-                val seenUrls = mutableSetOf<String>()
-
-                for (link in links) {
-                    var itemUrl = link.attr("href")
-                    if (itemUrl.startsWith("/")) itemUrl = "https://hstream.moe$itemUrl"
-                    
-                    if (seenUrls.contains(itemUrl)) continue
-                    seenUrls.add(itemUrl)
-                    
-                    val img = link.selectFirst("img") ?: continue
-                    var posterUrl = img.attr("data-src").ifEmpty { img.attr("src") }
-                    if (posterUrl.isEmpty()) continue
-                    if (posterUrl.startsWith("/")) posterUrl = "https://hstream.moe$posterUrl"
-                    
-                    val p = link.selectFirst("p")
-                    val title = p?.text() ?: img.attr("alt").ifEmpty { "Desconocido" }
-                    
-                    newItems.add(VideoItem(itemUrl, title, posterUrl))
-                }
-
-                withContext(Dispatchers.Main) {
-                    if (page == 1) progressBar.visibility = View.GONE
-                    adapter.addItems(newItems)
-                    isLoading = false
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    if (page == 1) progressBar.visibility = View.GONE
-                    Toast.makeText(this@MainActivity, "Error página $page: ${e.message}", Toast.LENGTH_SHORT).show()
-                    isLoading = false
-                }
-            }
+        if (savedInstanceState == null) {
+            replaceFragment(HomeFragment(), "HStream Player")
+            navView.setCheckedItem(R.id.nav_home)
         }
     }
 
-    private fun playVideo(url: String) {
+    private fun replaceFragment(fragment: Fragment, title: String) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment)
+            .commit()
+        supportActionBar?.title = title
+    }
+
+    override fun onBackPressed() {
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START)
+        } else {
+            super.onBackPressed()
+        }
+    }
+
+    fun playVideo(url: String) {
         Toast.makeText(this, "Obteniendo stream...", Toast.LENGTH_SHORT).show()
         
         CoroutineScope(Dispatchers.IO).launch {
@@ -154,9 +110,7 @@ class MainActivity : AppCompatActivity() {
                 // Extraer e_id
                 val pattern = Pattern.compile("e_id\" type=\"hidden\" value=\"([^\"]*)")
                 val matcher = pattern.matcher(html)
-                if (!matcher.find()) {
-                    throw Exception("No se encontró el e_id")
-                }
+                if (!matcher.find()) throw Exception("No se encontró el e_id")
                 val eId = matcher.group(1)
                 
                 var xsrfToken = ""
@@ -169,9 +123,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 
-                if (xsrfToken.isEmpty()) {
-                    throw Exception("No se encontró XSRF-TOKEN")
-                }
+                if (xsrfToken.isEmpty()) throw Exception("No se encontró XSRF-TOKEN")
 
                 // 2. Llamada a la API
                 val jsonPayload = JSONObject().apply {
@@ -202,21 +154,34 @@ class MainActivity : AppCompatActivity() {
                     subtitles.add(Uri.parse(subUrl))
                 }
                 
-                // 3. Lanzar intent al hilo principal
+                // 3. Lanzar intent
                 withContext(Dispatchers.Main) {
                     val intent = Intent(Intent.ACTION_VIEW)
                     intent.setDataAndType(Uri.parse(mpdUrl), "video/*")
-                    
                     if (subtitles.isNotEmpty()) {
                         intent.putExtra("subs", subtitles.toTypedArray())
                     }
                     
-                    startActivity(Intent.createChooser(intent, "Selecciona un reproductor (VLC, MX Player...)"))
+                    val prefs = getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
+                    val defaultPlayer = prefs.getString("default_player", "")
+                    
+                    if (!defaultPlayer.isNullOrEmpty()) {
+                        intent.setPackage(defaultPlayer)
+                        try {
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(this@MainActivity, "Reproductor no instalado, abriendo selector", Toast.LENGTH_SHORT).show()
+                            intent.setPackage(null)
+                            startActivity(Intent.createChooser(intent, "Selecciona reproductor"))
+                        }
+                    } else {
+                        startActivity(Intent.createChooser(intent, "Selecciona reproductor"))
+                    }
                 }
                 
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Error al reproducir: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
         }
