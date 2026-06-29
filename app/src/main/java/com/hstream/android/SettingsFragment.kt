@@ -137,78 +137,67 @@ class SettingsFragment : Fragment() {
     
     private fun loadBlacklist(txtBlacklist: TextView) {
         txtBlacklist.text = "Cargando..."
-        CoroutineScope(Dispatchers.IO).launch {
+        
+        CoroutineScope(Dispatchers.Main).launch {
             try {
-                val client = (requireActivity() as MainActivity).client
-                val req = Request.Builder()
-                    .url("https://hstream.moe/user/settings")
-                    .header("User-Agent", "Mozilla/5.0")
-                    .build()
-                val resp = client.newCall(req).execute()
-                val html = resp.body?.string() ?: ""
-                
-                val doc = Jsoup.parse(html)
-                // Obtener CSRF token del form de blacklist
-                csrfToken = doc.select("form[action=https://hstream.moe/user/blacklist] input[name=_token]").attr("value")
-                
-                var tagsInput = ""
-                val inputElement = doc.selectFirst("input[name=tags], textarea[name=tags]")
-                if (inputElement != null) {
-                    tagsInput = inputElement.attr("value")
-                    if (tagsInput.isEmpty()) {
-                        tagsInput = inputElement.text()
+                // Sincronizar cookies de OkHttp a WebView
+                val prefs = requireActivity().getSharedPreferences("CookiePrefs", Context.MODE_PRIVATE)
+                val cookiesStr = prefs.getString("hstream.moe", null)
+                if (cookiesStr != null) {
+                    val jsonArray = org.json.JSONArray(cookiesStr)
+                    for (i in 0 until jsonArray.length()) {
+                        val json = jsonArray.getJSONObject(i)
+                        val cookieString = "${json.getString("name")}=${json.getString("value")}; domain=${json.getString("domain")}; path=/"
+                        android.webkit.CookieManager.getInstance().setCookie("https://hstream.moe", cookieString)
                     }
+                    android.webkit.CookieManager.getInstance().flush()
                 }
-                
-                currentBlacklist.clear()
-                
-                if (tagsInput.startsWith("[")) {
-                    try {
-                        val jsonArray = org.json.JSONArray(tagsInput)
-                        for (i in 0 until jsonArray.length()) {
-                            val obj = jsonArray.getJSONObject(i)
-                            if (obj.has("value")) {
-                                currentBlacklist.add(obj.getString("value"))
+
+                val webView = android.webkit.WebView(requireContext())
+                webView.settings.javaScriptEnabled = true
+                webView.webViewClient = object : android.webkit.WebViewClient() {
+                    override fun onPageFinished(view: android.webkit.WebView, url: String) {
+                        if (url.contains("login")) {
+                            txtBlacklist.text = "Error: Sesión expirada"
+                            return
+                        }
+                        
+                        val js = """
+                            (function() {
+                                var tags = Array.from(document.querySelectorAll('tag')).map(t => t.getAttribute('value'));
+                                var token = document.querySelector('form[action="https://hstream.moe/user/blacklist"] input[name="_token"]');
+                                return JSON.stringify({ tags: tags, token: token ? token.value : '' });
+                            })();
+                        """.trimIndent()
+                        
+                        view.evaluateJavascript(js) { result ->
+                            try {
+                                val cleanResult = result.removeSurrounding("\"").replace("\\\"", "\"").replace("\\\\", "\\")
+                                val json = org.json.JSONObject(cleanResult)
+                                csrfToken = json.optString("token", "")
+                                
+                                val tagsArray = json.optJSONArray("tags")
+                                currentBlacklist.clear()
+                                if (tagsArray != null) {
+                                    for (i in 0 until tagsArray.length()) {
+                                        currentBlacklist.add(tagsArray.getString(i))
+                                    }
+                                }
+                                
+                                if (currentBlacklist.isEmpty()) {
+                                    txtBlacklist.text = "Ninguno"
+                                } else {
+                                    txtBlacklist.text = currentBlacklist.joinToString(", ")
+                                }
+                            } catch (e: Exception) {
+                                txtBlacklist.text = "Error leyendo tags del DOM"
                             }
                         }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                } else if (tagsInput.isNotEmpty()) {
-                    currentBlacklist.addAll(tagsInput.split(",").map { it.trim() }.filter { it.isNotEmpty() })
-                }
-                
-                if (currentBlacklist.isEmpty()) {
-                    val tags = doc.select("tag").map { it.attr("value") }
-                    currentBlacklist.addAll(tags)
-                }
-                
-                // Paracaídas final de Ponytail: si todavía está vacío, buscar en todo el HTML en crudo
-                if (currentBlacklist.isEmpty()) {
-                    val regex = Regex("""\"value\"[ ]*:[ ]*\"([^\"]+)\"""")
-                    val matches = regex.findAll(html)
-                    for (match in matches) {
-                        val tag = match.groupValues[1]
-                        if (allBlacklistTags.contains(tag)) {
-                            currentBlacklist.add(tag)
-                        }
-                    }
-                    val uniqueTags = currentBlacklist.distinct().toMutableList()
-                    currentBlacklist.clear()
-                    currentBlacklist.addAll(uniqueTags)
-                }
-                
-                withContext(Dispatchers.Main) {
-                    if (currentBlacklist.isEmpty()) {
-                        txtBlacklist.text = "Ninguno"
-                    } else {
-                        txtBlacklist.text = currentBlacklist.joinToString(", ")
                     }
                 }
+                webView.loadUrl("https://hstream.moe/user/settings")
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    txtBlacklist.text = "Error cargando blacklist"
-                }
+                txtBlacklist.text = "Error cargando blacklist"
             }
         }
     }
@@ -238,41 +227,42 @@ class SettingsFragment : Fragment() {
     
     private fun saveBlacklist(txtBlacklist: TextView) {
         txtBlacklist.text = "Guardando..."
-        CoroutineScope(Dispatchers.IO).launch {
+        
+        CoroutineScope(Dispatchers.Main).launch {
             try {
-                val client = (requireActivity() as MainActivity).client
-                
-                // Tagify usa formato JSON: [{"value":"Tag1"},{"value":"Tag2"}]
-                val tagsJsonBuilder = StringBuilder("[")
-                currentBlacklist.forEachIndexed { index, tag ->
-                    tagsJsonBuilder.append("{\"value\":\"$tag\"}")
-                    if (index < currentBlacklist.size - 1) tagsJsonBuilder.append(",")
+                val webView = android.webkit.WebView(requireContext())
+                webView.settings.javaScriptEnabled = true
+                webView.webViewClient = object : android.webkit.WebViewClient() {
+                    var submitted = false
+                    override fun onPageFinished(view: android.webkit.WebView, url: String) {
+                        if (!submitted) {
+                            submitted = true
+                            val tagsJsonBuilder = StringBuilder("[")
+                            currentBlacklist.forEachIndexed { index, tag ->
+                                tagsJsonBuilder.append("{\\\"value\\\":\\\"$tag\\\"}")
+                                if (index < currentBlacklist.size - 1) tagsJsonBuilder.append(",")
+                            }
+                            tagsJsonBuilder.append("]")
+                            val jsTags = tagsJsonBuilder.toString()
+                            
+                            val js = """
+                                var input = document.querySelector('input[name="tags"]');
+                                if (input) {
+                                    input.value = '$jsTags';
+                                    document.querySelector('form[action="https://hstream.moe/user/blacklist"]').submit();
+                                }
+                            """.trimIndent()
+                            view.evaluateJavascript(js, null)
+                        } else {
+                            Toast.makeText(context, "Blacklist guardado", Toast.LENGTH_SHORT).show()
+                            loadBlacklist(txtBlacklist)
+                        }
+                    }
                 }
-                tagsJsonBuilder.append("]")
-                
-                val formBody = FormBody.Builder()
-                    .add("_token", csrfToken)
-                    .add("tags", tagsJsonBuilder.toString())
-                    .build()
-                    
-                val req = Request.Builder()
-                    .url("https://hstream.moe/user/blacklist")
-                    .header("User-Agent", "Mozilla/5.0")
-                    .header("Referer", "https://hstream.moe/user/settings")
-                    .post(formBody)
-                    .build()
-                    
-                client.newCall(req).execute().close() // El post hace redirección a veces o devuelve éxito
-                
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Blacklist guardado", Toast.LENGTH_SHORT).show()
-                    loadBlacklist(txtBlacklist)
-                }
+                webView.loadUrl("https://hstream.moe/user/settings")
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error al guardar", Toast.LENGTH_SHORT).show()
-                    loadBlacklist(txtBlacklist) // Restaurar
-                }
+                Toast.makeText(context, "Error al iniciar guardado", Toast.LENGTH_SHORT).show()
+                loadBlacklist(txtBlacklist)
             }
         }
     }
