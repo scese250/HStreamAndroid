@@ -59,4 +59,8 @@ dependencies {
     
     // Image Loading (Coil)
     implementation("io.coil-kt:coil:2.5.0")
+    
+    // Privacy and Lifecycle
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("androidx.lifecycle:lifecycle-process:2.7.0")
 }

@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Spinner
+import android.widget.Switch
 import androidx.fragment.app.Fragment
 
 class SettingsFragment : Fragment() {
@@ -47,6 +48,12 @@ class SettingsFragment : Fragment() {
                 prefs.edit().putString("default_player", selectedPackage).apply()
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        val switchPrivacy: Switch = view.findViewById(R.id.switchPrivacy)
+        switchPrivacy.isChecked = prefs.getBoolean("privacy_lock", false)
+        switchPrivacy.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("privacy_lock", isChecked).apply()
         }
 
         return view
