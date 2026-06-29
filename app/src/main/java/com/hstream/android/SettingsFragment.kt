@@ -145,27 +145,21 @@ class SettingsFragment : Fragment() {
                     .header("User-Agent", "Mozilla/5.0")
                     .build()
                 val resp = client.newCall(req).execute()
-                
-                // Si fuimos redirigidos al login, la sesión expiró o era inválida
-                if (resp.request.url.encodedPath == "/login") {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Sesión expirada. Vuelve a iniciar sesión.", Toast.LENGTH_LONG).show()
-                        requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).edit().putBoolean("is_logged_in", false).apply()
-                        requireActivity().getSharedPreferences("CookiePrefs", Context.MODE_PRIVATE).edit().clear().apply()
-                        val intent = Intent(context, MainActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        startActivity(intent)
-                    }
-                    return@launch
-                }
-                
                 val html = resp.body?.string() ?: ""
                 
                 val doc = Jsoup.parse(html)
                 // Obtener CSRF token del form de blacklist
                 csrfToken = doc.select("form[action=https://hstream.moe/user/blacklist] input[name=_token]").attr("value")
                 
-                val tagsInput = doc.selectFirst("input[name=tags]")?.attr("value") ?: ""
+                var tagsInput = ""
+                val inputElement = doc.selectFirst("input[name=tags], textarea[name=tags]")
+                if (inputElement != null) {
+                    tagsInput = inputElement.attr("value")
+                    if (tagsInput.isEmpty()) {
+                        tagsInput = inputElement.text()
+                    }
+                }
+                
                 currentBlacklist.clear()
                 
                 if (tagsInput.startsWith("[")) {
@@ -181,7 +175,7 @@ class SettingsFragment : Fragment() {
                         e.printStackTrace()
                     }
                 } else if (tagsInput.isNotEmpty()) {
-                    currentBlacklist.addAll(tagsInput.split(",").map { it.trim() })
+                    currentBlacklist.addAll(tagsInput.split(",").map { it.trim() }.filter { it.isNotEmpty() })
                 }
                 
                 if (currentBlacklist.isEmpty()) {

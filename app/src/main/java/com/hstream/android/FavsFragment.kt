@@ -83,19 +83,6 @@ class FavsFragment : Fragment() {
                     .build()
 
                 val response = client.newCall(request).execute()
-                
-                if (response.request.url.encodedPath == "/login") {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Sesión expirada. Vuelve a iniciar sesión.", Toast.LENGTH_LONG).show()
-                        requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).edit().putBoolean("is_logged_in", false).apply()
-                        requireActivity().getSharedPreferences("CookiePrefs", Context.MODE_PRIVATE).edit().clear().apply()
-                        val intent = Intent(context, MainActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        startActivity(intent)
-                    }
-                    return@launch
-                }
-                
                 val html = response.body?.string() ?: throw Exception("Empty body")
                 
                 val doc = Jsoup.parse(html)
