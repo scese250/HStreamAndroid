@@ -162,6 +162,11 @@ class MainActivity : AppCompatActivity() {
                         intent.putExtra("subs", subtitles.toTypedArray())
                     }
                     
+                    val headers = Bundle()
+                    headers.putString("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                    headers.putString("Referer", url)
+                    intent.putExtra("android.media.intent.extra.HTTP_HEADERS", headers)
+                    
                     val prefs = getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
                     val defaultPlayer = prefs.getString("default_player", "")
                     

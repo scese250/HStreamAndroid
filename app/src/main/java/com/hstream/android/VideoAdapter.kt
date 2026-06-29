@@ -49,4 +49,10 @@ class VideoAdapter(
         items.addAll(newItems)
         notifyItemRangeInserted(startPosition, newItems.size)
     }
+
+    fun clearItems() {
+        val size = items.size
+        items.clear()
+        notifyItemRangeRemoved(0, size)
+    }
 }
