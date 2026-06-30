@@ -227,28 +227,46 @@ class SearchFragment : Fragment() {
             }
         }
 
-        val toolbar = requireActivity().findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
         val searchHeader = view.findViewById<android.widget.FrameLayout>(R.id.searchHeader)
         var isHeaderHidden = false
+        val searchHeaderHeight = (50 * resources.displayMetrics.density).toInt()
+        val toolbarHeight = (56 * resources.displayMetrics.density).toInt()
+        val toolbar = requireActivity().findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
 
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (dy > 10 && !isHeaderHidden) {
                     isHeaderHidden = true
-                    val transition = androidx.transition.Slide(android.view.Gravity.TOP)
-                    transition.duration = 200
-                    androidx.transition.TransitionManager.beginDelayedTransition(toolbar.parent as android.view.ViewGroup, transition)
-                    androidx.transition.TransitionManager.beginDelayedTransition(searchHeader.parent as android.view.ViewGroup, transition)
-                    toolbar.visibility = View.GONE
-                    searchHeader.visibility = View.GONE
+                    val anim = android.animation.ValueAnimator.ofFloat(1f, 0f)
+                    anim.addUpdateListener { valueAnimator ->
+                        val fraction = valueAnimator.animatedValue as Float
+                        
+                        val lpSearch = searchHeader.layoutParams
+                        lpSearch.height = (searchHeaderHeight * fraction).toInt()
+                        searchHeader.layoutParams = lpSearch
+                        
+                        val lpToolbar = toolbar.layoutParams
+                        lpToolbar.height = (toolbarHeight * fraction).toInt()
+                        toolbar.layoutParams = lpToolbar
+                    }
+                    anim.duration = 200
+                    anim.start()
                 } else if (dy < -10 && isHeaderHidden) {
                     isHeaderHidden = false
-                    val transition = androidx.transition.Slide(android.view.Gravity.TOP)
-                    transition.duration = 200
-                    androidx.transition.TransitionManager.beginDelayedTransition(toolbar.parent as android.view.ViewGroup, transition)
-                    androidx.transition.TransitionManager.beginDelayedTransition(searchHeader.parent as android.view.ViewGroup, transition)
-                    toolbar.visibility = View.VISIBLE
-                    searchHeader.visibility = View.VISIBLE
+                    val anim = android.animation.ValueAnimator.ofFloat(0f, 1f)
+                    anim.addUpdateListener { valueAnimator ->
+                        val fraction = valueAnimator.animatedValue as Float
+                        
+                        val lpSearch = searchHeader.layoutParams
+                        lpSearch.height = (searchHeaderHeight * fraction).toInt()
+                        searchHeader.layoutParams = lpSearch
+                        
+                        val lpToolbar = toolbar.layoutParams
+                        lpToolbar.height = (toolbarHeight * fraction).toInt()
+                        toolbar.layoutParams = lpToolbar
+                    }
+                    anim.duration = 200
+                    anim.start()
                 }
                 
                 if (dy > 0) {
@@ -514,5 +532,11 @@ class SearchFragment : Fragment() {
                 }
             }
         }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        val toolbar = requireActivity().findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        val lp = toolbar.layoutParams
+        lp.height = (56 * resources.displayMetrics.density).toInt()
+        toolbar.layoutParams = lp
     }
 }
