@@ -504,7 +504,7 @@ class SearchFragment : Fragment() {
             "view-count"
         )
         val order = if (sortIndex in orderParams.indices) orderParams[sortIndex] else "recently-released"
-        params.add("sort=$order")
+        params.add("order=$order")
         
         val viewParam = if (isPosterLayout) "poster" else "thumbnail"
         params.add("view=$viewParam")
