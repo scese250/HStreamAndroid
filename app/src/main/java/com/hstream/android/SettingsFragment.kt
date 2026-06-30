@@ -189,33 +189,51 @@ class SettingsFragment : Fragment() {
                 val doc = Jsoup.parse(html)
                 
                 val formBody = FormBody.Builder()
-                val form = doc.selectFirst("form[action$=/settings], form[action$=/user/settings]")
+                val form = doc.selectFirst("form[action$=/settings], form[action$=/user/settings]") ?: doc.selectFirst("form")
+                
+                var foundSearch = false
+                var foundTop = false
+                var foundMiddle = false
+                
                 if (form != null) {
                     val inputs = form.select("input, select, textarea")
+                    val addedNames = mutableSetOf<String>()
+                    
                     for (input in inputs) {
                         val name = input.attr("name")
                         if (name.isEmpty()) continue
                         
                         val type = input.attr("type").lowercase()
                         if (type == "checkbox" || type == "radio") {
-                            if (!input.hasAttr("checked") && name != "searchDesign" && name != "topDesign" && name != "middleDesign") {
+                            if (!input.hasAttr("checked") && name != "searchDesign" && name != "topDesign" && name != "middleDesign" && name != "search_design" && name != "top_design" && name != "middle_design") {
                                 continue
                             }
                         }
                         
+                        if (name == "searchDesign" || name == "search_design") foundSearch = true
+                        if (name == "topDesign" || name == "top_design") foundTop = true
+                        if (name == "middleDesign" || name == "middle_design") foundMiddle = true
+                        
                         val value = when (name) {
-                            "searchDesign", "topDesign", "middleDesign" -> searchDesign
+                            "searchDesign", "topDesign", "middleDesign", 
+                            "search_design", "top_design", "middle_design" -> searchDesign
                             else -> input.`val`()
                         }
-                        formBody.add(name, value)
+                        
+                        // Prevent duplicate radio buttons from being added multiple times
+                        if (!addedNames.contains(name)) {
+                            formBody.add(name, value)
+                            addedNames.add(name)
+                        }
                     }
                 } else {
                     val token = doc.select("input[name=_token]").firstOrNull()?.attr("value") ?: ""
                     formBody.add("_token", token)
-                    formBody.add("searchDesign", searchDesign)
-                    formBody.add("topDesign", topDesign)
-                    formBody.add("middleDesign", middleDesign)
                 }
+                
+                if (!foundSearch) formBody.add("searchDesign", searchDesign)
+                if (!foundTop) formBody.add("topDesign", topDesign)
+                if (!foundMiddle) formBody.add("middleDesign", middleDesign)
                     
                 val req = Request.Builder()
                     .url("https://hstream.moe/user/settings")
