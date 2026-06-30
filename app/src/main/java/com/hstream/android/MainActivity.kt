@@ -188,7 +188,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun handleVideoClick(url: String) {
+    fun handleVideoClick(url: String, onRemoveFav: (() -> Unit)? = null) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_video_options, null)
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
@@ -202,6 +202,15 @@ class MainActivity : AppCompatActivity() {
         dialogView.findViewById<android.widget.Button>(R.id.btnViewSeries).setOnClickListener {
             dialog.dismiss()
             openSeriesFragment(url)
+        }
+        
+        val btnRemoveFav = dialogView.findViewById<android.widget.Button>(R.id.btnRemoveFav)
+        if (onRemoveFav != null) {
+            btnRemoveFav.visibility = android.view.View.VISIBLE
+            btnRemoveFav.setOnClickListener {
+                dialog.dismiss()
+                onRemoveFav()
+            }
         }
 
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
