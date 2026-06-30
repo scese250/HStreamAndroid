@@ -101,12 +101,16 @@ class SeriesFragment : Fragment() {
                 val seenUrls = mutableSetOf<String>()
                 val episodeLinks = doc.select("a[href^=/hentai/], a[href^=https://hstream.moe/hentai/]")
                 
+                val episodeRegex = Regex("^${Regex.escape(seriesUrl)}-\\d+$")
+                
                 for (link in episodeLinks) {
                     var itemUrl = link.attr("href")
                     if (itemUrl.startsWith("/")) itemUrl = "https://hstream.moe$itemUrl"
                     
                     if (seenUrls.contains(itemUrl)) continue
-                    if (itemUrl == seriesUrl) continue // No incluir la misma serie
+                    
+                    // Filtrar estrictamente solo links que sean episodios de ESTA serie
+                    if (!itemUrl.matches(episodeRegex)) continue
                     
                     seenUrls.add(itemUrl)
                     

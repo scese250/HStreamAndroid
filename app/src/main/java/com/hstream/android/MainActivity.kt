@@ -102,7 +102,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun openSeriesFragment(url: String) {
-        val fragment = SeriesFragment.newInstance(url)
+        // Remover el sufijo "-#" de los capítulos para ir a la serie
+        val seriesUrl = url.replace(Regex("-\\d+$"), "")
+        val fragment = SeriesFragment.newInstance(seriesUrl)
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragmentContainer, fragment)
             .addToBackStack(null)
