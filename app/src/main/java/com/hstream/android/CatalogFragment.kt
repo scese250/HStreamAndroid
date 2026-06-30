@@ -102,10 +102,14 @@ class CatalogFragment : Fragment() {
                 
                 val doc = Jsoup.parse(html)
                 
-                val links = if (type == "trending") {
+                var links = if (type == "trending") {
                     doc.select("#tabs-trending a[href^=/hentai/], #tabs-trending a[href^=https://hstream.moe/hentai/]")
                 } else {
                     doc.select("a[href^=/hentai/], a[href^=https://hstream.moe/hentai/]")
+                }
+                
+                if (type == "trending") {
+                    links = org.jsoup.select.Elements(links.take(9))
                 }
                 
                 val newItems = mutableListOf<VideoItem>()
