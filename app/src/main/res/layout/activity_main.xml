@@ -35,7 +35,7 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="#A6121212"
+        android:background="#1E1E1E"
         app:itemTextColor="#E3E3E3"
         app:itemIconTint="#BB86FC"
         app:menu="@menu/drawer_menu" />
