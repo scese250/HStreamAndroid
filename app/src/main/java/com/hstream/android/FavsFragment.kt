@@ -120,7 +120,7 @@ class FavsFragment : Fragment() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
-                    Toast.makeText(requireContext(), "Error al cargar favoritos: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Error loading favs: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }

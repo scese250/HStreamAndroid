@@ -113,6 +113,27 @@ class SeriesFragment : Fragment() {
                 // Extract Tags
                 val tags = doc.select("a[href*=tags%5B0%5D]").joinToString(" • ") { it.text() }
                 
+                // Extract Servers
+                val servers = mutableListOf<Pair<String, String>>()
+                val iframes = doc.select("iframe")
+                iframes.forEachIndexed { index, iframe ->
+                    val src = iframe.attr("src")
+                    if (src.isNotEmpty()) {
+                        servers.add(Pair("IFrame ${index + 1}", src))
+                    }
+                }
+                
+                val serverBtns = doc.select(".server-btn, [data-server], [data-src]")
+                serverBtns.forEach { btn ->
+                    val src = btn.attr("data-src").ifEmpty { btn.attr("data-server") }
+                    val name = btn.text().trim().ifEmpty { "Server ${servers.size + 1}" }
+                    if (src.isNotEmpty() && !src.endsWith(".jpg") && !src.endsWith(".png") && !src.endsWith(".webp") && btn.tagName() != "img") {
+                        if (servers.none { it.second == src }) {
+                            servers.add(Pair(name, src))
+                        }
+                    }
+                }
+
                 // Extract Episodes
                 val newItems = mutableListOf<VideoItem>()
                 val seenUrls = mutableSetOf<String>()
@@ -140,17 +161,48 @@ class SeriesFragment : Fragment() {
                 }
                 
                 withContext(Dispatchers.Main) {
+                    val webView: android.webkit.WebView = view.findViewById(R.id.webViewPlayer)
+                    val layoutServer: View = view.findViewById(R.id.layoutServerSelector)
+                    val spinner: android.widget.Spinner = view.findViewById(R.id.spinnerServers)
+                    val imgBlur: ImageView = view.findViewById(R.id.imgSeriesBackgroundBlur)
+
+                    if (servers.isNotEmpty()) {
+                        webView.visibility = View.VISIBLE
+                        layoutServer.visibility = View.VISIBLE
+                        
+                        webView.settings.javaScriptEnabled = true
+                        webView.settings.domStorageEnabled = true
+                        webView.webChromeClient = android.webkit.WebChromeClient()
+                        webView.webViewClient = android.webkit.WebViewClient()
+                        
+                        val serverNames = servers.map { it.first }
+                        val spinAdapter = android.widget.ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, serverNames)
+                        spinAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                        spinner.adapter = spinAdapter
+                        
+                        spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+                            override fun onItemSelected(parent: android.widget.AdapterView<*>?, v: View?, position: Int, id: Long) {
+                                val url = servers[position].second
+                                webView.loadUrl(url)
+                            }
+                            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                        }
+                    } else {
+                        webView.visibility = View.GONE
+                        layoutServer.visibility = View.GONE
+                    }
+
                     txtTitle.text = title
                     
                     if (releaseDate.isNotEmpty()) {
-                        txtDate.text = "Lanzamiento: $releaseDate"
+                        txtDate.text = "Release Date: $releaseDate"
                         txtDate.visibility = View.VISIBLE
                     } else {
                         txtDate.visibility = View.GONE
                     }
                     
                     if (studioName.isNotEmpty()) {
-                        txtStudio.text = "Estudio: $studioName"
+                        txtStudio.text = "Studio: $studioName"
                         txtStudio.visibility = View.VISIBLE
                         txtStudio.setOnClickListener {
                             if (studioId != null) {
@@ -170,12 +222,15 @@ class SeriesFragment : Fragment() {
                     imgPoster.load(posterUrl) {
                         crossfade(true)
                     }
+                    imgBlur.load(posterUrl) {
+                        crossfade(true)
+                    }
                     adapter.addItems(newItems)
                 }
                 
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error cargando serie: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Error loading series: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }

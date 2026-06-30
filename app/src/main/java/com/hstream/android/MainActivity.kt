@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
+import coil.load
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -64,19 +65,38 @@ class MainActivity : AppCompatActivity() {
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
 
+        val headerView = navView.getHeaderView(0)
+        val navUsername = headerView.findViewById<android.widget.TextView>(R.id.navHeaderUsername)
+        val navAvatar = headerView.findViewById<android.widget.ImageView>(R.id.navHeaderAvatar)
+
+        if (prefs.getBoolean("is_logged_in", false)) {
+            val savedUser = prefs.getString("username", "")
+            val savedAvatar = prefs.getString("avatar_url", "")
+            if (!savedUser.isNullOrEmpty()) {
+                navUsername.text = savedUser
+                if (!savedAvatar.isNullOrEmpty()) {
+                    navAvatar.load(savedAvatar)
+                }
+            } else {
+                fetchUserProfile(navUsername, navAvatar)
+            }
+        } else {
+            navUsername.text = "Guest"
+        }
+
         navView.setNavigationItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
-                R.id.nav_home -> replaceFragment(HomeFragment(), "Inicio")
-                R.id.nav_search -> replaceFragment(SearchFragment(), "Buscar / Filtrar")
-                R.id.nav_favs -> replaceFragment(FavsFragment(), "Favoritos")
-                R.id.nav_settings -> replaceFragment(SettingsFragment(), "Configuración")
+                R.id.nav_home -> replaceFragment(HomeFragment(), "Home")
+                R.id.nav_search -> replaceFragment(SearchFragment(), "Search")
+                R.id.nav_favs -> replaceFragment(FavsFragment(), "Favs")
+                R.id.nav_settings -> replaceFragment(SettingsFragment(), "Settings")
             }
-            drawerLayout.closeDrawer(GravityCompat.START)
+            drawerLayout.closeDrawers()
             true
         }
 
         if (savedInstanceState == null) {
-            replaceFragment(HomeFragment(), "HStream Player")
+            replaceFragment(HomeFragment(), "Home")
             navView.setCheckedItem(R.id.nav_home)
         }
     }
@@ -85,6 +105,7 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragmentContainer, fragment)
             .commit()
+        
         supportActionBar?.title = title
     }
 
@@ -106,6 +127,43 @@ class MainActivity : AppCompatActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
         } else {
             super.onBackPressed()
+        }
+    }
+
+    private fun fetchUserProfile(usernameText: android.widget.TextView, avatarImage: android.widget.ImageView) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val req = Request.Builder()
+                    .url("https://hstream.moe/user/settings")
+                    .header("User-Agent", "Mozilla/5.0")
+                    .build()
+                val resp = client.newCall(req).execute()
+                val html = resp.body?.string() ?: ""
+                val doc = org.jsoup.Jsoup.parse(html)
+                
+                var nameInput = doc.select("input[name=username]").attr("value")
+                if (nameInput.isEmpty()) {
+                    nameInput = doc.select(".dropdown-menu .dropdown-header").text()
+                }
+                val finalName = if(nameInput.isNotEmpty()) nameInput else "User"
+                
+                val avatarSrc = doc.select(".user-avatar img").attr("src").ifEmpty {
+                    doc.select("img.rounded-circle").firstOrNull()?.attr("src") ?: ""
+                }
+                
+                withContext(Dispatchers.Main) {
+                    usernameText.text = finalName
+                    if (avatarSrc.isNotEmpty()) {
+                        avatarImage.load(avatarSrc)
+                        getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).edit()
+                            .putString("username", finalName)
+                            .putString("avatar_url", avatarSrc)
+                            .apply()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

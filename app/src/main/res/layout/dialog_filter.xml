@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#121212">
+
+    <TextView
+        android:id="@+id/txtDialogTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select Filters"
+        android:textColor="#BB86FC"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:padding="16dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Genres -->
+            <TextView
+                android:id="@+id/headerGenres"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Genres ▼"
+                android:textColor="#E3E3E3"
+                android:textSize="16sp"
+                android:paddingVertical="8dp"
+                android:textStyle="bold" />
+            <GridLayout
+                android:id="@+id/gridGenres"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="2"
+                android:visibility="gone" />
+
+            <!-- Actions -->
+            <TextView
+                android:id="@+id/headerActions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Actions ▼"
+                android:textColor="#E3E3E3"
+                android:textSize="16sp"
+                android:paddingVertical="8dp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <GridLayout
+                android:id="@+id/gridActions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="2"
+                android:visibility="gone" />
+
+            <!-- Appearance -->
+            <TextView
+                android:id="@+id/headerAppearance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Appearance ▼"
+                android:textColor="#E3E3E3"
+                android:textSize="16sp"
+                android:paddingVertical="8dp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <GridLayout
+                android:id="@+id/gridAppearance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="2"
+                android:visibility="gone" />
+
+            <!-- Types -->
+            <TextView
+                android:id="@+id/headerTypes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Types ▼"
+                android:textColor="#E3E3E3"
+                android:textSize="16sp"
+                android:paddingVertical="8dp"
+                android:textStyle="bold"
+                android:layout_marginTop="8dp" />
+            <GridLayout
+                android:id="@+id/gridTypes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="2"
+                android:visibility="gone" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="end">
+        
+        <Button
+            android:id="@+id/btnDialogCancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            style="?android:attr/borderlessButtonStyle"
+            android:textColor="#888888" />
+
+        <Button
+            android:id="@+id/btnDialogSave"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:backgroundTint="#BB86FC"
+            android:textColor="#121212"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+</LinearLayout>

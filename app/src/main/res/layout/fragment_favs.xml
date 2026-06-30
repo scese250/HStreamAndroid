@@ -38,29 +38,29 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Inicia sesión para ver Favoritos"
+            android:text="Log in to view Favs"
             android:textColor="#E3E3E3"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:layout_marginBottom="24dp"/>
+            android:layout_marginBottom="16dp"/>
 
         <Button
             android:id="@+id/btnFavsLogin"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Iniciar Sesión"
-            style="?android:attr/borderlessButtonStyle"
-            android:textColor="#BB86FC"
-            android:paddingHorizontal="32dp"
-            android:background="@drawable/outline_button_bg" />
+            android:text="Login"
+            android:backgroundTint="#BB86FC"
+            android:textColor="#121212"
+            android:textStyle="bold"
+            android:paddingHorizontal="32dp"/>
 
     </LinearLayout>
     
     <TextView
-        android:id="@+id/txtEmptyFavs"
+        android:id="@+id/textFavsEmpty"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="No tienes favoritos aún."
+        android:text="No favs yet."
         android:textColor="#888888"
         android:textSize="16sp"
         android:layout_centerInParent="true"

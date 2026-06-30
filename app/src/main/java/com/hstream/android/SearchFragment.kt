@@ -131,20 +131,22 @@ class SearchFragment : Fragment() {
             (requireActivity() as MainActivity).handleVideoClick(url)
         }
 
-        val layoutManager = GridLayoutManager(context, 2)
+        val prefs = requireActivity().getSharedPreferences("HStreamPrefs", android.content.Context.MODE_PRIVATE)
+        val searchDesign = prefs.getString("searchDesign", "cover")
+        val layoutManager = GridLayoutManager(context, if (searchDesign == "thumbnail") 1 else 2)
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = adapter
 
         btnGenres.setOnClickListener {
-            showMultiSelectDialog("Géneros", genresList.map { it.first }.toTypedArray(), selectedGenres)
+            showFilterDialog("Genres", selectedGenres)
         }
 
         btnBlacklist.setOnClickListener {
-            showMultiSelectDialog("Blacklist", genresList.map { it.first }.toTypedArray(), selectedBlacklist)
+            showFilterDialog("Blacklist", selectedBlacklist)
         }
 
         btnStudios.setOnClickListener {
-            showMultiSelectDialog("Estudios", studiosList.map { it.first }.toTypedArray(), selectedStudios)
+            showMultiSelectDialog("Studios", studiosList.map { it.first }.toTypedArray(), selectedStudios)
         }
 
         btnApplyFilters.setOnClickListener {
@@ -175,14 +177,105 @@ class SearchFragment : Fragment() {
         return view
     }
 
+    private fun showFilterDialog(title: String, checkedItemsArray: BooleanArray) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_filter, null)
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .create()
+
+        dialogView.findViewById<android.widget.TextView>(R.id.txtDialogTitle).text = title
+
+        val categories = mapOf(
+            "Genres" to listOf("Comedy", "Fantasy", "Horror", "Vanilla", "Ntr", "Pov", "Filmed", "X-Ray", "Romance", "Drama", "Slice of Life", "Sports", "Supernatural", "Mecha", "Mystery", "Harem", "Adventure", "Action"),
+            "Actions" to listOf("Anal", "Blow Job", "Boob Job", "Foot Job", "Hand Job", "Rimjob", "Bdsm", "Bondage", "Creampie", "Facial", "Inflation", "Masturbation", "Public Sex", "Rape", "Reverse Rape", "Threesome", "Orgy", "Gangbang", "Tentacle", "Toys"),
+            "Appearance" to listOf("Big Boobs", "Small Boobs", "Dark Skin", "Cosplay", "Elf", "Maid", "Nekomimi", "Nurse", "School Girl", "Succubus", "Teacher", "Trap", "Pregnant", "Glasses", "Swim Suit", "Ugly Bastard", "Monster", "Loli", "Shota", "Milf", "Futanari"),
+            "Types" to listOf("3D", "4K", "48Fps", "4K 48Fps", "Censored", "Uncensored", "Ahegao", "Bestiality", "Gore", "Incest", "Lactation", "Lq", "Mind Break", "Mind Control", "Orc", "Scat", "Tsundere", "Virgin", "Yuri")
+        )
+
+        val headers = mapOf(
+            "Genres" to dialogView.findViewById<android.widget.TextView>(R.id.headerGenres),
+            "Actions" to dialogView.findViewById<android.widget.TextView>(R.id.headerActions),
+            "Appearance" to dialogView.findViewById<android.widget.TextView>(R.id.headerAppearance),
+            "Types" to dialogView.findViewById<android.widget.TextView>(R.id.headerTypes)
+        )
+
+        val grids = mapOf(
+            "Genres" to dialogView.findViewById<android.widget.GridLayout>(R.id.gridGenres),
+            "Actions" to dialogView.findViewById<android.widget.GridLayout>(R.id.gridActions),
+            "Appearance" to dialogView.findViewById<android.widget.GridLayout>(R.id.gridAppearance),
+            "Types" to dialogView.findViewById<android.widget.GridLayout>(R.id.gridTypes)
+        )
+
+        val allChips = mutableListOf<Pair<Int, android.widget.TextView>>() // index in genresList to TextView
+
+        categories.forEach { (cat, tags) ->
+            val header = headers[cat]!!
+            val grid = grids[cat]!!
+            
+            header.setOnClickListener {
+                if (grid.visibility == View.GONE) {
+                    grid.visibility = View.VISIBLE
+                    header.text = "$cat ▲"
+                } else {
+                    grid.visibility = View.GONE
+                    header.text = "$cat ▼"
+                }
+            }
+
+            tags.forEach { tag ->
+                val index = genresList.indexOfFirst { it.first == tag }
+                if (index != -1) {
+                    val isChecked = checkedItemsArray[index]
+                    val chip = android.widget.TextView(requireContext()).apply {
+                        text = tag
+                        textSize = 14f
+                        setTextColor(if (isChecked) android.graphics.Color.parseColor("#BB86FC") else android.graphics.Color.parseColor("#E3E3E3"))
+                        setPadding(16, 16, 16, 16)
+                        val marginParams = android.widget.GridLayout.LayoutParams().apply {
+                            setMargins(8, 8, 8, 8)
+                            width = 0
+                            columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f)
+                        }
+                        layoutParams = marginParams
+                        gravity = android.view.Gravity.CENTER
+                        background = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_chip_selector)
+                        isSelected = isChecked
+                        isClickable = true
+                        
+                        setOnClickListener {
+                            isSelected = !isSelected
+                            setTextColor(if (isSelected) android.graphics.Color.parseColor("#BB86FC") else android.graphics.Color.parseColor("#E3E3E3"))
+                        }
+                    }
+                    grid.addView(chip)
+                    allChips.add(Pair(index, chip))
+                }
+            }
+        }
+
+        dialogView.findViewById<Button>(R.id.btnDialogCancel).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btnDialogSave).setOnClickListener {
+            allChips.forEach { (index, chip) ->
+                checkedItemsArray[index] = chip.isSelected
+            }
+            dialog.dismiss()
+        }
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
+    }
+
     private fun showMultiSelectDialog(title: String, items: Array<String>, checkedItems: BooleanArray) {
         val builder = AlertDialog.Builder(requireContext())
         builder.setTitle(title)
         builder.setMultiChoiceItems(items, checkedItems) { _, which, isChecked ->
             checkedItems[which] = isChecked
         }
-        builder.setPositiveButton("Aceptar", null)
-        builder.setNeutralButton("Limpiar") { _, _ ->
+        builder.setPositiveButton("OK", null)
+        builder.setNeutralButton("Clear") { _, _ ->
             for (i in checkedItems.indices) {
                 checkedItems[i] = false
             }
@@ -263,7 +356,7 @@ class SearchFragment : Fragment() {
                     if (posterUrl.startsWith("/")) posterUrl = "https://hstream.moe$posterUrl"
                     
                     val p = link.selectFirst("p")
-                    val title = p?.text() ?: img.attr("alt").ifEmpty { "Desconocido" }
+                    val title = p?.text() ?: img.attr("alt").ifEmpty { "Unknown" }
                     
                     newItems.add(VideoItem(itemUrl, title, posterUrl))
                 }
@@ -272,7 +365,7 @@ class SearchFragment : Fragment() {
                     if (currentPage == 1) {
                         progressBar.visibility = View.GONE
                         if (newItems.isEmpty()) {
-                            Toast.makeText(context, "No se encontraron resultados", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "No results found", Toast.LENGTH_SHORT).show()
                         }
                     }
                     if (currentPage == 1) {

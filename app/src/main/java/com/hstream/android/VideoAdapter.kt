@@ -22,6 +22,15 @@ class VideoAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_video, parent, false)
+            
+        val prefs = parent.context.getSharedPreferences("HStreamPrefs", android.content.Context.MODE_PRIVATE)
+        val searchDesign = prefs.getString("searchDesign", "cover")
+        
+        val posterContainer = view.findViewById<android.widget.FrameLayout>(R.id.posterContainer)
+        val params = posterContainer.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
+        params.dimensionRatio = if (searchDesign == "thumbnail") "16:9" else "2:3"
+        posterContainer.layoutParams = params
+            
         return ViewHolder(view)
     }
 

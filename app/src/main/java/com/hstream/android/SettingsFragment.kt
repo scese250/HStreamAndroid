@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.FormBody
 import okhttp3.Request
 import org.jsoup.Jsoup
+import coil.load
 
 class SettingsFragment : Fragment() {
 
@@ -105,19 +106,24 @@ class SettingsFragment : Fragment() {
         val isLoggedIn = prefs.getBoolean("is_logged_in", false)
         
         val btnLogin = view.findViewById<Button>(R.id.btnLogin)
-        val txtLoginStatus = view.findViewById<TextView>(R.id.txtLoginStatus)
+        val cardIndicator = view.findViewById<androidx.cardview.widget.CardView>(R.id.cardLoginStatusIndicator)
+        val imgAvatar = view.findViewById<android.widget.ImageView>(R.id.imgSettingsAvatar)
         val btnEditBlacklist = view.findViewById<Button>(R.id.btnEditBlacklist)
         val txtBlacklist = view.findViewById<TextView>(R.id.txtBlacklist)
         val layoutWebsiteDesign = view.findViewById<View>(R.id.layoutWebsiteDesign)
         
         if (isLoggedIn) {
-            txtLoginStatus.text = "Sesión Activa"
+            cardIndicator.setCardBackgroundColor(android.graphics.Color.parseColor("#34C759"))
+            val savedAvatar = prefs.getString("avatar_url", "")
+            if (!savedAvatar.isNullOrEmpty()) {
+                imgAvatar.load(savedAvatar)
+            }
             btnLogin.text = "Log Out"
             btnLogin.setOnClickListener {
                 prefs.edit().putBoolean("is_logged_in", false).apply()
                 // Borrar cookies
                 requireActivity().getSharedPreferences("CookiePrefs", Context.MODE_PRIVATE).edit().clear().apply()
-                Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
                 val intent = Intent(context, MainActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
@@ -126,46 +132,89 @@ class SettingsFragment : Fragment() {
             btnEditBlacklist.visibility = View.VISIBLE
             layoutWebsiteDesign.visibility = View.VISIBLE
             
-            setupDesignSpinners(view)
+            setupDesignSwitch(view)
             loadBlacklist(txtBlacklist, view)
             
             btnEditBlacklist.setOnClickListener {
                 showBlacklistEditor(txtBlacklist, view)
             }
             
-            view.findViewById<Button>(R.id.btnSaveDesign).setOnClickListener {
-                saveDesign(view)
-            }
-            
         } else {
-            txtLoginStatus.text = "No has iniciado sesión"
+            cardIndicator.setCardBackgroundColor(android.graphics.Color.parseColor("#FF3B30"))
+            imgAvatar.setImageResource(android.R.drawable.ic_menu_camera)
+            imgAvatar.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#888888"))
             btnLogin.text = "Login"
             btnLogin.setOnClickListener {
                 startActivity(Intent(context, LoginActivity::class.java))
             }
-            txtBlacklist.text = "Inicia sesión para ver tu blacklist."
+            txtBlacklist.text = "Log in to view your blacklist."
             btnEditBlacklist.visibility = View.GONE
             layoutWebsiteDesign.visibility = View.GONE
         }
     }
     
-    private fun setupDesignSpinners(view: View) {
-        val options = arrayOf("Poster", "Thumbnail")
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, options)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+    private fun setupDesignSwitch(view: View) {
+        val switchSearchDesign = view.findViewById<Switch>(R.id.switchSearchDesign)
+        val txtSearchDesignState = view.findViewById<TextView>(R.id.txtSearchDesignState)
         
-        view.findViewById<Spinner>(R.id.spinnerSearchDesign).adapter = adapter
-        view.findViewById<Spinner>(R.id.spinnerTopDesign).adapter = adapter
-        view.findViewById<Spinner>(R.id.spinnerMiddleDesign).adapter = adapter
+        // Initialize state
+        switchSearchDesign.isChecked = searchDesign != "thumbnail"
+        txtSearchDesignState.text = if (switchSearchDesign.isChecked) "Poster" else "Thumbnail"
+        
+        switchSearchDesign.setOnCheckedChangeListener { _, isChecked ->
+            val newValue = if (isChecked) "cover" else "thumbnail"
+            txtSearchDesignState.text = if (isChecked) "Poster" else "Thumbnail"
+            
+            searchDesign = newValue
+            topDesign = newValue
+            middleDesign = newValue
+            
+            requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).edit()
+                .putString("searchDesign", newValue)
+                .apply()
+                
+            saveDesignToServer()
+        }
     }
     
-    private fun loadBlacklist(txtBlacklist: TextView, view: View) {
-        txtBlacklist.text = "Cargando..."
+    private fun saveDesignToServer() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val client = (requireActivity() as MainActivity).client
                 
-                // 1. Obtener CSRF y opciones de diseño de la página
+                val formBody = FormBody.Builder()
+                    .add("_token", csrfToken)
+                    .add("searchDesign", searchDesign)
+                    .add("topDesign", topDesign)
+                    .add("middleDesign", middleDesign)
+                    .build()
+                    
+                val req = Request.Builder()
+                    .url("https://hstream.moe/user/settings")
+                    .header("User-Agent", "Mozilla/5.0")
+                    .header("Referer", "https://hstream.moe/user/settings")
+                    .post(formBody)
+                    .build()
+                    
+                client.newCall(req).execute().close()
+                
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Website Design saved", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error saving design", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun loadBlacklist(txtBlacklist: TextView, view: View) {
+        txtBlacklist.text = "Loading..."
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val client = (requireActivity() as MainActivity).client
+                
                 val reqSettings = Request.Builder()
                     .url("https://hstream.moe/user/settings")
                     .header("User-Agent", "Mozilla/5.0")
@@ -187,7 +236,6 @@ class SettingsFragment : Fragment() {
                 if (topDesign.isEmpty()) topDesign = "cover"
                 if (middleDesign.isEmpty()) middleDesign = "cover"
                 
-                // 2. Obtener tags desde la API JSON oculta
                 val reqApi = Request.Builder()
                     .url("https://hstream.moe/user/blacklist")
                     .header("User-Agent", "Mozilla/5.0")
@@ -212,48 +260,116 @@ class SettingsFragment : Fragment() {
                 
                 withContext(Dispatchers.Main) {
                     if (currentBlacklist.isEmpty()) {
-                        txtBlacklist.text = "Ninguno"
+                        txtBlacklist.text = "None"
                     } else {
                         txtBlacklist.text = currentBlacklist.joinToString(", ")
                     }
                     
-                    view.findViewById<Spinner>(R.id.spinnerSearchDesign).setSelection(if (searchDesign == "thumbnail") 1 else 0)
-                    view.findViewById<Spinner>(R.id.spinnerTopDesign).setSelection(if (topDesign == "thumbnail") 1 else 0)
-                    view.findViewById<Spinner>(R.id.spinnerMiddleDesign).setSelection(if (middleDesign == "thumbnail") 1 else 0)
+                    val switchSearchDesign = view.findViewById<Switch>(R.id.switchSearchDesign)
+                    switchSearchDesign.isChecked = searchDesign != "thumbnail"
+                    view.findViewById<TextView>(R.id.txtSearchDesignState).text = if(switchSearchDesign.isChecked) "Poster" else "Thumbnail"
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    txtBlacklist.text = "Error cargando configuraciones"
+                    txtBlacklist.text = "Error loading settings"
                 }
             }
         }
     }
     
-    private fun showBlacklistEditor(txtBlacklist: TextView, view: View) {
-        val checkedItems = BooleanArray(allBlacklistTags.size)
-        for (i in allBlacklistTags.indices) {
-            checkedItems[i] = currentBlacklist.contains(allBlacklistTags[i])
-        }
+    private fun showBlacklistEditor(txtBlacklist: TextView, root: View) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_filter, null)
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .create()
 
-        AlertDialog.Builder(requireContext())
-            .setTitle("Editar Blacklist")
-            .setMultiChoiceItems(allBlacklistTags, checkedItems) { _, which, isChecked ->
-                val tag = allBlacklistTags[which]
-                if (isChecked) {
-                    if (!currentBlacklist.contains(tag)) currentBlacklist.add(tag)
+        dialogView.findViewById<TextView>(R.id.txtDialogTitle).text = "Edit Blacklist"
+
+        val categories = mapOf(
+            "Genres" to listOf("Comedy", "Drama", "Fantasy", "Harem", "Horror", "Mecha", "Mystery", "Romance", "Sci-Fi", "Slice of Life", "Sports", "Supernatural"),
+            "Actions" to listOf("Anal", "Blowjob", "Bondage", "Creampie", "Defloration", "Exhibitionism", "Facial", "Futanari", "Gangbang", "Masturbation", "Orgy", "Rape", "Tentacle", "Threesome", "Toys"),
+            "Appearance" to listOf("Big Breasts", "Dark Skin", "Elf", "Glasses", "Loli", "Maid", "Milf", "Monster", "Nurse", "Schoolgirl", "Shota", "Succubus", "Swimsuit", "Teacher"),
+            "Types" to listOf("3D", "Ahegao", "Cheating", "Incest", "Inflation", "Lactation", "Mind Break", "Mind Control", "Netorare", "Ntr", "Pregnant", "Ugly Bastard", "Vanilla", "Virgin", "Yuri")
+        )
+
+        val headers = mapOf(
+            "Genres" to dialogView.findViewById<TextView>(R.id.headerGenres),
+            "Actions" to dialogView.findViewById<TextView>(R.id.headerActions),
+            "Appearance" to dialogView.findViewById<TextView>(R.id.headerAppearance),
+            "Types" to dialogView.findViewById<TextView>(R.id.headerTypes)
+        )
+
+        val grids = mapOf(
+            "Genres" to dialogView.findViewById<android.widget.GridLayout>(R.id.gridGenres),
+            "Actions" to dialogView.findViewById<android.widget.GridLayout>(R.id.gridActions),
+            "Appearance" to dialogView.findViewById<android.widget.GridLayout>(R.id.gridAppearance),
+            "Types" to dialogView.findViewById<android.widget.GridLayout>(R.id.gridTypes)
+        )
+
+        val allChips = mutableListOf<TextView>()
+
+        categories.forEach { (cat, tags) ->
+            val header = headers[cat]!!
+            val grid = grids[cat]!!
+            
+            header.setOnClickListener {
+                if (grid.visibility == View.GONE) {
+                    grid.visibility = View.VISIBLE
+                    header.text = "$cat ▲"
                 } else {
-                    currentBlacklist.remove(tag)
+                    grid.visibility = View.GONE
+                    header.text = "$cat ▼"
                 }
             }
-            .setPositiveButton("Guardar") { _, _ ->
-                saveBlacklist(txtBlacklist, view)
+
+            tags.forEach { tag ->
+                val chip = TextView(requireContext()).apply {
+                    text = tag
+                    textSize = 14f
+                    setTextColor(if (currentBlacklist.contains(tag)) android.graphics.Color.parseColor("#BB86FC") else android.graphics.Color.parseColor("#E3E3E3"))
+                    setPadding(16, 16, 16, 16)
+                    val marginParams = android.widget.GridLayout.LayoutParams().apply {
+                        setMargins(8, 8, 8, 8)
+                        width = 0
+                        columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f)
+                    }
+                    layoutParams = marginParams
+                    gravity = android.view.Gravity.CENTER
+                    background = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_chip_selector)
+                    isSelected = currentBlacklist.contains(tag)
+                    isClickable = true
+                    
+                    setOnClickListener {
+                        isSelected = !isSelected
+                        setTextColor(if (isSelected) android.graphics.Color.parseColor("#BB86FC") else android.graphics.Color.parseColor("#E3E3E3"))
+                    }
+                }
+                grid.addView(chip)
+                allChips.add(chip)
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        }
+
+        dialogView.findViewById<Button>(R.id.btnDialogCancel).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btnDialogSave).setOnClickListener {
+            currentBlacklist.clear()
+            allChips.forEach { chip ->
+                if (chip.isSelected) {
+                    currentBlacklist.add(chip.text.toString())
+                }
+            }
+            saveBlacklist(txtBlacklist, root)
+            dialog.dismiss()
+        }
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
     }
     
     private fun saveBlacklist(txtBlacklist: TextView, view: View) {
-        txtBlacklist.text = "Guardando..."
+        txtBlacklist.text = "Saving..."
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val client = (requireActivity() as MainActivity).client
@@ -280,53 +396,13 @@ class SettingsFragment : Fragment() {
                 client.newCall(req).execute().close()
                 
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Blacklist guardado", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Blacklist saved", Toast.LENGTH_SHORT).show()
                     loadBlacklist(txtBlacklist, view)
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error al guardar", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Error saving", Toast.LENGTH_SHORT).show()
                     loadBlacklist(txtBlacklist, view)
-                }
-            }
-        }
-    }
-    
-    private fun saveDesign(view: View) {
-        val searchIdx = view.findViewById<Spinner>(R.id.spinnerSearchDesign).selectedItemPosition
-        val topIdx = view.findViewById<Spinner>(R.id.spinnerTopDesign).selectedItemPosition
-        val middleIdx = view.findViewById<Spinner>(R.id.spinnerMiddleDesign).selectedItemPosition
-        
-        val newSearch = if (searchIdx == 1) "thumbnail" else "cover"
-        val newTop = if (topIdx == 1) "thumbnail" else "cover"
-        val newMiddle = if (middleIdx == 1) "thumbnail" else "cover"
-        
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val client = (requireActivity() as MainActivity).client
-                
-                val formBody = FormBody.Builder()
-                    .add("_token", csrfToken)
-                    .add("searchDesign", newSearch)
-                    .add("topDesign", newTop)
-                    .add("middleDesign", newMiddle)
-                    .build()
-                    
-                val req = Request.Builder()
-                    .url("https://hstream.moe/user/settings")
-                    .header("User-Agent", "Mozilla/5.0")
-                    .header("Referer", "https://hstream.moe/user/settings")
-                    .post(formBody)
-                    .build()
-                    
-                client.newCall(req).execute().close()
-                
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Website Design guardado", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error al guardar diseño", Toast.LENGTH_SHORT).show()
                 }
             }
         }
