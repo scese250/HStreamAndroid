@@ -157,7 +157,6 @@ class SettingsFragment : Fragment() {
         val switchSearchDesign = view.findViewById<Switch>(R.id.switchLayout)
         val txtSearchDesignState = view.findViewById<TextView>(R.id.txtLayoutStatus)
         
-        // Initialize state
         switchSearchDesign.isChecked = searchDesign != "thumbnail"
         txtSearchDesignState.text = if (switchSearchDesign.isChecked) "Poster" else "Thumbnail"
         
@@ -173,11 +172,13 @@ class SettingsFragment : Fragment() {
                 .putString("searchDesign", newValue)
                 .apply()
                 
-            saveDesignToServer()
+            switchSearchDesign.isEnabled = false
+            txtSearchDesignState.text = "Saving..."
+            saveDesignToServer(switchSearchDesign, txtSearchDesignState, isChecked)
         }
     }
     
-    private fun saveDesignToServer() {
+    private fun saveDesignToServer(switchView: Switch, statusText: TextView, isChecked: Boolean) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val client = (requireActivity() as MainActivity).client
@@ -186,24 +187,63 @@ class SettingsFragment : Fragment() {
                 val respSettings = client.newCall(reqSettings).execute()
                 val html = respSettings.body?.string() ?: ""
                 val doc = Jsoup.parse(html)
-                val token = doc.select("input[name=_token]").firstOrNull()?.attr("value") ?: ""
                 
                 val formBody = FormBody.Builder()
-                    .add("_token", token)
-                    .add("searchDesign", searchDesign)
-                    .add("topDesign", topDesign)
-                    .add("middleDesign", middleDesign)
-                    .build()
+                val form = doc.selectFirst("form[action$=/settings], form[action$=/user/settings]")
+                if (form != null) {
+                    val inputs = form.select("input, select, textarea")
+                    for (input in inputs) {
+                        val name = input.attr("name")
+                        if (name.isEmpty()) continue
+                        
+                        val type = input.attr("type").lowercase()
+                        if (type == "checkbox" || type == "radio") {
+                            if (!input.hasAttr("checked") && name != "searchDesign" && name != "topDesign" && name != "middleDesign") {
+                                continue
+                            }
+                        }
+                        
+                        val value = when (name) {
+                            "searchDesign", "topDesign", "middleDesign" -> searchDesign
+                            else -> input.val()
+                        }
+                        formBody.add(name, value)
+                    }
+                } else {
+                    val token = doc.select("input[name=_token]").firstOrNull()?.attr("value") ?: ""
+                    formBody.add("_token", token)
+                    formBody.add("searchDesign", searchDesign)
+                    formBody.add("topDesign", topDesign)
+                    formBody.add("middleDesign", middleDesign)
+                }
                     
                 val req = Request.Builder()
                     .url("https://hstream.moe/user/settings")
                     .header("User-Agent", "Mozilla/5.0")
                     .header("Referer", "https://hstream.moe/user/settings")
-                    .post(formBody)
+                    .post(formBody.build())
                     .build()
                     
-                client.newCall(req).execute().close()
+                val saveResp = client.newCall(req).execute()
+                val saveHtml = saveResp.body?.string() ?: ""
+                saveResp.close()
+                
+                withContext(Dispatchers.Main) {
+                    switchView.isEnabled = true
+                    statusText.text = if (isChecked) "Poster" else "Thumbnail"
+                    
+                    if (saveResp.isSuccessful || saveResp.isRedirect) {
+                        Toast.makeText(context, "Layout updated successfully!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Failed to update layout on server.", Toast.LENGTH_SHORT).show()
+                    }
+                }
             } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    switchView.isEnabled = true
+                    statusText.text = if (isChecked) "Poster" else "Thumbnail"
+                    Toast.makeText(context, "Error saving layout: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
