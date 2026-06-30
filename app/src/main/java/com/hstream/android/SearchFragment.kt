@@ -190,7 +190,7 @@ class SearchFragment : Fragment() {
         }
 
         btnStudios.setOnClickListener {
-            showMultiSelectDialog("Studios", studiosList.map { it.first }.toTypedArray(), selectedStudios, txtStudiosSubtitle)
+            showStudiosDialog("Studios", selectedStudios, txtStudiosSubtitle, "Studios Selected")
         }
         
         isPosterLayout = searchDesign != "thumbnail"
@@ -399,23 +399,66 @@ class SearchFragment : Fragment() {
         dialog.show()
     }
 
-    private fun showMultiSelectDialog(title: String, items: Array<String>, checkedItems: BooleanArray, subtitleView: android.widget.TextView) {
-        val builder = AlertDialog.Builder(requireContext())
-        builder.setTitle(title)
-        builder.setMultiChoiceItems(items, checkedItems) { _, which, isChecked ->
-            checkedItems[which] = isChecked
-        }
-        builder.setPositiveButton("OK") { _, _ -> 
-            val count = checkedItems.count { it }
-            subtitleView.text = "$count Studios Selected"
-        }
-        builder.setNeutralButton("Clear") { _, _ ->
-            for (i in checkedItems.indices) {
-                checkedItems[i] = false
+    private fun showStudiosDialog(title: String, checkedItemsArray: BooleanArray, subtitleView: android.widget.TextView, suffix: String) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_studios, null)
+        val dialog = AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .create()
+
+        dialogView.findViewById<android.widget.TextView>(R.id.txtDialogTitle).text = title
+        val grid = dialogView.findViewById<android.widget.GridLayout>(R.id.gridStudios)
+        
+        val allChips = mutableListOf<android.widget.TextView>()
+        val density = resources.displayMetrics.density
+
+        for (i in studiosList.indices) {
+            val chip = android.widget.TextView(requireContext()).apply {
+                text = studiosList[i].first
+                setTextColor(android.graphics.Color.WHITE)
+                textSize = 12f
+                setPadding((12 * density).toInt(), (8 * density).toInt(), (12 * density).toInt(), (8 * density).toInt())
+                background = requireContext().getDrawable(R.drawable.bg_chip_selector)
+                isSelected = checkedItemsArray[i]
+                isClickable = true
+                isFocusable = true
+                gravity = android.view.Gravity.CENTER
             }
-            subtitleView.text = "0 Studios Selected"
+            
+            val params = android.widget.GridLayout.LayoutParams().apply {
+                width = 0
+                height = android.widget.GridLayout.LayoutParams.WRAP_CONTENT
+                columnSpec = android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f)
+                setMargins((4 * density).toInt(), (4 * density).toInt(), (4 * density).toInt(), (4 * density).toInt())
+            }
+            grid.addView(chip, params)
+            allChips.add(chip)
+            
+            chip.setOnClickListener {
+                it.isSelected = !it.isSelected
+            }
         }
-        builder.show()
+        
+        dialogView.findViewById<Button>(R.id.btnDialogCancel).setOnClickListener {
+            for (i in studiosList.indices) {
+                checkedItemsArray[i] = false
+            }
+            subtitleView.text = "0 $suffix"
+            dialog.dismiss()
+        }
+
+        dialogView.findViewById<Button>(R.id.btnDialogSave).setOnClickListener {
+            var count = 0
+            for (i in studiosList.indices) {
+                val chip = allChips[i]
+                checkedItemsArray[i] = chip.isSelected
+                if (chip.isSelected) count++
+            }
+            subtitleView.text = "$count $suffix"
+            dialog.dismiss()
+        }
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
     }
 
     private fun buildSearchUrl(query: String, sortIndex: Int, page: Int): String {
