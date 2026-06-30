@@ -322,24 +322,30 @@ class SeriesFragment : Fragment() {
                 if (snapshot.isEmpty()) throw Exception("Like component snapshot not found")
                 
                 // 2. Make POST request to livewire/update
-                val jsonPayload = """
-                    {
-                        "_token": "$csrfToken",
-                        "components": [
-                            {
-                                "snapshot": $snapshot,
-                                "updates": {},
-                                "calls": [
-                                    {
-                                        "path": "",
-                                        "method": "like",
-                                        "params": []
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                """.trimIndent()
+                val payload = org.json.JSONObject()
+                payload.put("_token", csrfToken)
+                
+                val component = org.json.JSONObject()
+                // The snapshot must be a JSON string, which put() handles properly when given a String object.
+                component.put("snapshot", snapshot)
+                component.put("updates", org.json.JSONObject())
+                
+                val call = org.json.JSONObject()
+                call.put("path", "")
+                call.put("method", "like")
+                call.put("params", org.json.JSONArray())
+                
+                val callsArray = org.json.JSONArray()
+                callsArray.put(call)
+                
+                component.put("calls", callsArray)
+                
+                val componentsArray = org.json.JSONArray()
+                componentsArray.put(component)
+                
+                payload.put("components", componentsArray)
+                
+                val jsonPayload = payload.toString()
                 
                 val mediaType = "application/json".toMediaTypeOrNull()
                 val body = if (mediaType != null) {
