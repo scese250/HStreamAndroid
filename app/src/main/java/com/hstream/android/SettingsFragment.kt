@@ -305,13 +305,15 @@ class SettingsFragment : Fragment() {
             val header = headers[cat]!!
             val grid = grids[cat]!!
             
+            header.text = "$cat ˅"
+            
             header.setOnClickListener {
                 if (grid.visibility == View.GONE) {
                     grid.visibility = View.VISIBLE
-                    header.text = "$cat ▲"
+                    header.text = "$cat ˄"
                 } else {
                     grid.visibility = View.GONE
-                    header.text = "$cat ▼"
+                    header.text = "$cat ˅"
                 }
             }
 

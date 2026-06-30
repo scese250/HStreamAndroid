@@ -225,7 +225,7 @@ class SeriesFragment : Fragment() {
                     }
                     imgBlur.load(posterUrl) {
                         crossfade(true)
-                        transformations(BlurTransformation(requireContext(), 20f))
+                        transformations(BlurTransformation(requireContext(), 7f))
                     }
                     adapter.addItems(newItems)
                 }
