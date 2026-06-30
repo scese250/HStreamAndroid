@@ -144,10 +144,6 @@ class SearchFragment : Fragment() {
         val btnToggleFilters: android.widget.ImageButton = view.findViewById(R.id.btnToggleFilters)
         val filterContainer: android.widget.LinearLayout = view.findViewById(R.id.filterContainer)
         
-        if (preSelectedStudio != null) {
-            filterContainer.visibility = View.GONE
-        }
-        
         btnToggleFilters.setOnClickListener {
             if (filterContainer.visibility == View.VISIBLE) {
                 filterContainer.visibility = View.GONE
@@ -290,7 +286,9 @@ class SearchFragment : Fragment() {
         })
         
         if (preSelectedStudio != null) {
-            btnApplyFilters.performClick()
+            currentPage = 1
+            adapter.clearItems()
+            performSearch(editSearch.text.toString(), spinnerSort.selectedItemPosition)
         }
 
         return view
