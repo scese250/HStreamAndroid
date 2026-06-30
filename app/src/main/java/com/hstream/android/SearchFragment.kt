@@ -152,10 +152,20 @@ class SearchFragment : Fragment() {
         val searchDesign = prefs.getString("searchDesign", "cover")
         
         val cachedBlacklist = prefs.getStringSet("cached_blacklist", setOf()) ?: setOf()
+        var blacklistCount = 0
         for (i in genresList.indices) {
             val tag = genresList[i].first
             if (cachedBlacklist.contains(tag)) {
                 selectedBlacklist[i] = true
+                blacklistCount++
+            }
+        }
+        txtBlacklistSubtitle.text = "$blacklistCount Items Selected"
+        
+        if (preSelectedStudio != null) {
+            val idx = studiosList.indexOfFirst { it.second == preSelectedStudio }
+            if (idx >= 0) {
+                txtStudiosSubtitle.text = "1 Studios Selected"
             }
         }
         val layoutManager = GridLayoutManager(context, if (searchDesign == "thumbnail") 1 else 2)
