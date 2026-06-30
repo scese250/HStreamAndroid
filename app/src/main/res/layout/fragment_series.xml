@@ -11,8 +11,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
-        android:alpha="0.25"
         android:importantForAccessibility="no" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#D0121212" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -86,9 +90,9 @@
                 android:id="@+id/txtSeriesTags"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#8093F1"
+                android:textColor="#D6BCFA"
                 android:textSize="13sp"
-                android:lineSpacingExtra="4dp"
+                android:lineSpacingMultiplier="1.6"
                 android:layout_marginBottom="16dp" />
 
             <WebView
@@ -133,21 +137,23 @@
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
-            <LinearLayout
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_box"
-                android:padding="12dp"
+                app:cardBackgroundColor="#1AFFFFFF"
+                app:cardElevation="0dp"
+                app:cardCornerRadius="8dp"
                 android:layout_marginBottom="16dp">
                 
                 <TextView
                     android:id="@+id/txtSeriesSynopsis"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:padding="12dp"
                     android:textColor="#E3E3E3"
                     android:textSize="14sp"
                     android:lineSpacingExtra="2dp"/>
-            </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
             <TextView
                 android:layout_width="match_parent"

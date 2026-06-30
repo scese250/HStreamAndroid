@@ -48,16 +48,26 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <ImageButton
-                android:id="@+id/btnEditPlayer"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@drawable/bg_circle"
-                android:src="@android:drawable/ic_media_play"
-                app:tint="#BB86FC"
-                android:padding="12dp"
-                android:scaleType="centerInside"
-                android:contentDescription="Select Player" />
+            <androidx.cardview.widget.CardView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                app:cardCornerRadius="20dp"
+                app:cardBackgroundColor="#121212"
+                app:cardElevation="0dp"
+                app:strokeColor="#BB86FC"
+                app:strokeWidth="1dp">
+
+                <ImageButton
+                    android:id="@+id/btnEditPlayer"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_media_play"
+                    app:tint="#BB86FC"
+                    android:scaleType="centerInside"
+                    android:padding="8dp"
+                    android:contentDescription="Select Player" />
+            </androidx.cardview.widget.CardView>
         </LinearLayout>
 
         <View

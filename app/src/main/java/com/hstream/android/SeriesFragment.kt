@@ -202,7 +202,7 @@ class SeriesFragment : Fragment() {
                     }
                     
                     if (studioName.isNotEmpty()) {
-                        txtStudio.text = studioName
+                        txtStudio.text = "$studioName ↗"
                         txtStudio.paintFlags = txtStudio.paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
                         txtStudio.visibility = View.VISIBLE
                         txtStudio.setOnClickListener {
@@ -225,6 +225,7 @@ class SeriesFragment : Fragment() {
                     }
                     imgBlur.load(posterUrl) {
                         crossfade(true)
+                        transformations(BlurTransformation(requireContext(), 20f))
                     }
                     adapter.addItems(newItems)
                 }
@@ -235,5 +236,22 @@ class SeriesFragment : Fragment() {
                 }
             }
         }
+    }
+}
+
+class BlurTransformation(private val context: Context, private val radius: Float = 10f) : coil.transform.Transformation {
+    override val cacheKey: String = "blur-$radius"
+    override suspend fun transform(input: android.graphics.Bitmap, size: coil.size.Size): android.graphics.Bitmap {
+        val rs = android.renderscript.RenderScript.create(context)
+        val bitmapAlloc = android.renderscript.Allocation.createFromBitmap(rs, input)
+        val blurScript = android.renderscript.ScriptIntrinsicBlur.create(rs, android.renderscript.Element.U8_4(rs))
+        blurScript.setRadius(radius.coerceIn(0f, 25f))
+        blurScript.setInput(bitmapAlloc)
+        val outAlloc = android.renderscript.Allocation.createTyped(rs, bitmapAlloc.type)
+        blurScript.forEach(outAlloc)
+        val outBitmap = android.graphics.Bitmap.createBitmap(input.width, input.height, input.config)
+        outAlloc.copyTo(outBitmap)
+        rs.destroy()
+        return outBitmap
     }
 }

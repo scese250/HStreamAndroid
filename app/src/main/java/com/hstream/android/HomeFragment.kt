@@ -23,9 +23,9 @@ class HomeFragment : Fragment() {
         val viewPager: ViewPager2 = view.findViewById(R.id.viewPagerHome)
         
         val tabs = listOf(
-            Pair("Recién Lanzados", "recently-released"),
-            Pair("Recién Subidos", "recently-uploaded"),
-            Pair("Tendencias", "trending")
+            Pair("Recently Released", "recently-released"),
+            Pair("Recently Uploaded", "recently-uploaded"),
+            Pair("Trending", "trending")
         )
         
         viewPager.adapter = object : FragmentStateAdapter(this) {

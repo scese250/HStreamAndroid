@@ -48,38 +48,32 @@ class SettingsFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_settings, container, false)
         val btnEditPlayer: android.widget.ImageButton = view.findViewById(R.id.btnEditPlayer)
 
+        val prefs = requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
         val pm = requireContext().packageManager
-        val queryIntent = Intent(Intent.ACTION_VIEW)
-        queryIntent.setDataAndType(Uri.parse("http://example.com/video.mp4"), "video/*")
-        val resolveInfos = pm.queryIntentActivities(queryIntent, 0)
-
-        val dynamicPlayers = mutableListOf<Pair<String, String>>()
-        dynamicPlayers.add(Pair("Always Ask", ""))
-
-        for (info in resolveInfos) {
-            val appName = info.loadLabel(pm).toString()
-            val packageName = info.activityInfo.packageName
-            if (dynamicPlayers.none { it.second == packageName }) {
-                dynamicPlayers.add(Pair(appName, packageName))
+        
+        val savedPackage = prefs.getString("default_player", "")
+        if (!savedPackage.isNullOrEmpty()) {
+            try {
+                val icon = pm.getApplicationIcon(savedPackage)
+                btnEditPlayer.setImageDrawable(icon)
+                btnEditPlayer.imageTintList = null
+            } catch (e: Exception) {
+                // Not found
             }
         }
-
-        val prefs = requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
         
         btnEditPlayer.setOnClickListener {
-            val savedPackage = prefs.getString("default_player", "")
-            val selectedIndex = dynamicPlayers.indexOfFirst { it.second == savedPackage }.takeIf { it >= 0 } ?: 0
-            
-            val builder = AlertDialog.Builder(requireContext())
-            builder.setTitle("Select Video Player")
-            val playerNames = dynamicPlayers.map { it.first }.toTypedArray()
-            builder.setSingleChoiceItems(playerNames, selectedIndex) { dialog, which ->
-                val selectedPackage = dynamicPlayers[which].second
+            val sheet = PlayerSelectorBottomSheet { selectedPackage, selectedIcon ->
                 prefs.edit().putString("default_player", selectedPackage).apply()
-                dialog.dismiss()
+                if (selectedPackage.isEmpty()) {
+                    btnEditPlayer.setImageResource(android.R.drawable.ic_media_play)
+                    btnEditPlayer.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#BB86FC"))
+                } else {
+                    btnEditPlayer.setImageDrawable(selectedIcon)
+                    btnEditPlayer.imageTintList = null
+                }
             }
-            builder.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
-            builder.show()
+            sheet.show(parentFragmentManager, "PlayerSelector")
         }
 
         val switchPrivacy: Switch = view.findViewById(R.id.switchPrivacy)
@@ -405,5 +399,83 @@ class SettingsFragment : Fragment() {
                 }
             }
         }
+    }
+}
+
+class PlayerSelectorBottomSheet(private val onPlayerSelected: (String, android.graphics.drawable.Drawable?) -> Unit) : com.google.android.material.bottomsheet.BottomSheetDialogFragment() {
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        val context = requireContext()
+        val scrollView = android.widget.ScrollView(context)
+        val layout = android.widget.LinearLayout(context)
+        layout.orientation = android.widget.LinearLayout.VERTICAL
+        layout.setPadding(32, 32, 32, 32)
+        layout.setBackgroundColor(android.graphics.Color.parseColor("#121212"))
+        scrollView.addView(layout)
+
+        val title = TextView(context).apply {
+            text = "Select Video Player"
+            textSize = 18f
+            setTextColor(android.graphics.Color.WHITE)
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(0, 0, 0, 32)
+        }
+        layout.addView(title)
+
+        val pm = context.packageManager
+        val queryIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(Uri.parse("http://example.com/video.mp4"), "video/*")
+        }
+        val resolveInfos = pm.queryIntentActivities(queryIntent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+        
+        val uniquePackages = mutableSetOf<String>()
+
+        addOption(layout, "System Choice", "", androidx.core.content.ContextCompat.getDrawable(context, android.R.drawable.ic_media_play))
+
+        for (info in resolveInfos) {
+            val packageName = info.activityInfo.packageName
+            if (uniquePackages.add(packageName)) {
+                val appName = info.loadLabel(pm).toString()
+                val icon = info.loadIcon(pm)
+                addOption(layout, appName, packageName, icon)
+            }
+        }
+        return scrollView
+    }
+
+    private fun addOption(layout: android.widget.LinearLayout, name: String, packageName: String, icon: android.graphics.drawable.Drawable?) {
+        val context = layout.context
+        val itemLayout = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(0, 24, 0, 24)
+            isClickable = true
+            val outValue = android.util.TypedValue()
+            context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+            setBackgroundResource(outValue.resourceId)
+            setOnClickListener {
+                onPlayerSelected(packageName, icon)
+                dismiss()
+            }
+        }
+
+        val imageView = android.widget.ImageView(context).apply {
+            setImageDrawable(icon)
+            layoutParams = android.widget.LinearLayout.LayoutParams(96, 96).apply {
+                setMargins(0, 0, 32, 0)
+            }
+        }
+        itemLayout.addView(imageView)
+
+        val textView = TextView(context).apply {
+            text = name
+            textSize = 16f
+            setTextColor(android.graphics.Color.WHITE)
+        }
+        itemLayout.addView(textView)
+
+        layout.addView(itemLayout)
     }
 }

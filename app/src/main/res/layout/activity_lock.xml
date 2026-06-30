@@ -7,10 +7,9 @@
 
     <ImageView
         android:id="@+id/iconLock"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:src="@android:drawable/ic_secure"
-        app:tint="#BB86FC"
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:src="@drawable/locked"
         app:layout_constraintBottom_toTopOf="@+id/textLock"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
