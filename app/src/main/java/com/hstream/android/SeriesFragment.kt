@@ -111,7 +111,7 @@ class SeriesFragment : Fragment() {
                 }
                 
                 // Extract Tags
-                val tags = doc.select("a[href*=/search?tags=]").joinToString(" • ") { it.text() }
+                val tags = doc.select("a[href*=tags%5B0%5D]").joinToString(" • ") { it.text() }
                 
                 // Extract Episodes
                 val newItems = mutableListOf<VideoItem>()
