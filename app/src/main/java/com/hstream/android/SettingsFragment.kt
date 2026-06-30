@@ -175,8 +175,14 @@ class SettingsFragment : Fragment() {
             try {
                 val client = (requireActivity() as MainActivity).client
                 
+                val reqSettings = Request.Builder().url("https://hstream.moe/user/settings").build()
+                val respSettings = client.newCall(reqSettings).execute()
+                val html = respSettings.body?.string() ?: ""
+                val doc = Jsoup.parse(html)
+                val token = doc.select("input[name=_token]").firstOrNull()?.attr("value") ?: ""
+                
                 val formBody = FormBody.Builder()
-                    .add("_token", csrfToken)
+                    .add("_token", token)
                     .add("searchDesign", searchDesign)
                     .add("topDesign", topDesign)
                     .add("middleDesign", middleDesign)
@@ -190,81 +196,53 @@ class SettingsFragment : Fragment() {
                     .build()
                     
                 client.newCall(req).execute().close()
-                
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Website Design saved", Toast.LENGTH_SHORT).show()
-                }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error saving design", Toast.LENGTH_SHORT).show()
-                }
             }
         }
     }
 
     private fun loadBlacklist(txtBlacklist: TextView, view: View) {
-        txtBlacklist.text = "Loading..."
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val client = (requireActivity() as MainActivity).client
-                
-                val reqSettings = Request.Builder()
-                    .url("https://hstream.moe/user/settings")
-                    .header("User-Agent", "Mozilla/5.0")
-                    .build()
-                val respSettings = client.newCall(reqSettings).execute()
-                val html = respSettings.body?.string() ?: ""
-                val doc = Jsoup.parse(html)
-                
-                csrfToken = doc.select("form[action=https://hstream.moe/user/blacklist] input[name=_token]").attr("value")
-                if (csrfToken.isEmpty()) {
-                    csrfToken = doc.select("input[name=_token]").firstOrNull()?.attr("value") ?: ""
-                }
-                
-                searchDesign = doc.select("select[name=searchDesign] option[selected]").attr("value")
-                topDesign = doc.select("select[name=topDesign] option[selected]").attr("value")
-                middleDesign = doc.select("select[name=middleDesign] option[selected]").attr("value")
-                
-                if (searchDesign.isEmpty()) searchDesign = "cover"
-                if (topDesign.isEmpty()) topDesign = "cover"
-                if (middleDesign.isEmpty()) middleDesign = "cover"
-                
-                val reqApi = Request.Builder()
-                    .url("https://hstream.moe/user/blacklist")
-                    .header("User-Agent", "Mozilla/5.0")
-                    .header("Accept", "application/json")
-                    .header("X-Requested-With", "XMLHttpRequest")
-                    .build()
-                val respApi = client.newCall(reqApi).execute()
-                val jsonStr = respApi.body?.string() ?: ""
-                
-                currentBlacklist.clear()
+        val prefs = requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
+        val cached = prefs.getStringSet("cached_blacklist", null)
+        
+        if (cached != null) {
+            currentBlacklist.clear()
+            currentBlacklist.addAll(cached)
+            txtBlacklist.text = if (currentBlacklist.isEmpty()) "None" else currentBlacklist.joinToString(", ")
+        } else {
+            txtBlacklist.text = "Loading..."
+            CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val json = org.json.JSONObject(jsonStr)
-                    val userTags = json.optJSONArray("usertags")
-                    if (userTags != null) {
-                        for (i in 0 until userTags.length()) {
-                            currentBlacklist.add(userTags.getString(i))
+                    val client = (requireActivity() as MainActivity).client
+                    val reqApi = Request.Builder()
+                        .url("https://hstream.moe/user/blacklist")
+                        .header("User-Agent", "Mozilla/5.0")
+                        .header("Accept", "application/json")
+                        .header("X-Requested-With", "XMLHttpRequest")
+                        .build()
+                    val respApi = client.newCall(reqApi).execute()
+                    val jsonStr = respApi.body?.string() ?: ""
+                    
+                    currentBlacklist.clear()
+                    try {
+                        val json = org.json.JSONObject(jsonStr)
+                        val userTags = json.optJSONArray("usertags")
+                        if (userTags != null) {
+                            for (i in 0 until userTags.length()) {
+                                currentBlacklist.add(userTags.getString(i))
+                            }
                         }
+                    } catch (e: Exception) {}
+                    
+                    prefs.edit().putStringSet("cached_blacklist", currentBlacklist.toSet()).apply()
+                    
+                    withContext(Dispatchers.Main) {
+                        txtBlacklist.text = if (currentBlacklist.isEmpty()) "None" else currentBlacklist.joinToString(", ")
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-                
-                withContext(Dispatchers.Main) {
-                    if (currentBlacklist.isEmpty()) {
-                        txtBlacklist.text = "None"
-                    } else {
-                        txtBlacklist.text = currentBlacklist.joinToString(", ")
+                    withContext(Dispatchers.Main) {
+                        txtBlacklist.text = "Error loading settings"
                     }
-                    
-                    val switchSearchDesign = view.findViewById<Switch>(R.id.switchLayout)
-                    switchSearchDesign.isChecked = searchDesign != "thumbnail"
-                    view.findViewById<TextView>(R.id.txtLayoutStatus).text = if(switchSearchDesign.isChecked) "Poster" else "Thumbnail"
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    txtBlacklist.text = "Error loading settings"
                 }
             }
         }
@@ -365,10 +343,20 @@ class SettingsFragment : Fragment() {
     }
     
     private fun saveBlacklist(txtBlacklist: TextView, view: View) {
-        txtBlacklist.text = "Saving..."
+        val prefs = requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
+        prefs.edit().putStringSet("cached_blacklist", currentBlacklist.toSet()).apply()
+        txtBlacklist.text = if (currentBlacklist.isEmpty()) "None" else currentBlacklist.joinToString(", ")
+        
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val client = (requireActivity() as MainActivity).client
+                
+                val reqSettings = Request.Builder().url("https://hstream.moe/user/settings").build()
+                val respSettings = client.newCall(reqSettings).execute()
+                val html = respSettings.body?.string() ?: ""
+                val doc = Jsoup.parse(html)
+                var token = doc.select("form[action=https://hstream.moe/user/blacklist] input[name=_token]").attr("value")
+                if (token.isEmpty()) token = doc.select("input[name=_token]").firstOrNull()?.attr("value") ?: ""
                 
                 val tagsJsonBuilder = StringBuilder("[")
                 currentBlacklist.forEachIndexed { index, tag ->
@@ -378,7 +366,7 @@ class SettingsFragment : Fragment() {
                 tagsJsonBuilder.append("]")
                 
                 val formBody = FormBody.Builder()
-                    .add("_token", csrfToken)
+                    .add("_token", token)
                     .add("tags", tagsJsonBuilder.toString())
                     .build()
                     
@@ -390,16 +378,7 @@ class SettingsFragment : Fragment() {
                     .build()
                     
                 client.newCall(req).execute().close()
-                
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Blacklist saved", Toast.LENGTH_SHORT).show()
-                    loadBlacklist(txtBlacklist, view)
-                }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error saving", Toast.LENGTH_SHORT).show()
-                    loadBlacklist(txtBlacklist, view)
-                }
             }
         }
     }

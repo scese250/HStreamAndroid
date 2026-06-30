@@ -150,6 +150,14 @@ class SearchFragment : Fragment() {
 
         val prefs = requireActivity().getSharedPreferences("HStreamPrefs", android.content.Context.MODE_PRIVATE)
         val searchDesign = prefs.getString("searchDesign", "cover")
+        
+        val cachedBlacklist = prefs.getStringSet("cached_blacklist", setOf()) ?: setOf()
+        for (i in genresList.indices) {
+            val tag = genresList[i].first
+            if (cachedBlacklist.contains(tag)) {
+                selectedBlacklist[i] = true
+            }
+        }
         val layoutManager = GridLayoutManager(context, if (searchDesign == "thumbnail") 1 else 2)
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = adapter
