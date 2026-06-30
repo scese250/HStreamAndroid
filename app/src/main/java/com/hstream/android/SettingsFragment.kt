@@ -305,15 +305,16 @@ class SettingsFragment : Fragment() {
             val header = headers[cat]!!
             val grid = grids[cat]!!
             
-            header.text = "$cat ˅"
+            header.text = cat
+            header.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_down, 0)
             
             header.setOnClickListener {
                 if (grid.visibility == View.GONE) {
                     grid.visibility = View.VISIBLE
-                    header.text = "$cat ˄"
+                    header.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_up, 0)
                 } else {
                     grid.visibility = View.GONE
-                    header.text = "$cat ˅"
+                    header.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_down, 0)
                 }
             }
 

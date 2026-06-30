@@ -4,45 +4,31 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#121212"
+    android:background="@drawable/bg_dialog"
     android:paddingTop="16dp">
 
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="vertical"
         android:paddingHorizontal="16dp">
         
-        <LinearLayout
+        <TextView
+            android:id="@+id/txtDialogTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:text="Genres &amp; Filters"
+            android:textColor="#BB86FC"
+            android:textSize="20sp"
+            android:textStyle="bold" />
             
-            <TextView
-                android:id="@+id/txtDialogTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Genres &amp; Filters"
-                android:textColor="#BB86FC"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-                
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Select tags to filter your content."
-                android:textColor="#888888"
-                android:textSize="14sp" />
-        </LinearLayout>
-        
-        <ImageView
-            android:id="@+id/btnDialogClose"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            app:tint="#888888"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true" />
-    </RelativeLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select tags to filter your content."
+            android:textColor="#888888"
+            android:textSize="14sp" />
+    </LinearLayout>
     
     <View
         android:layout_width="match_parent"

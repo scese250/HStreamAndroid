@@ -65,6 +65,26 @@ class MainActivity : AppCompatActivity() {
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
 
+        drawerLayout.addDrawerListener(object : androidx.drawerlayout.widget.DrawerLayout.DrawerListener {
+            override fun onDrawerSlide(drawerView: android.view.View, slideOffset: Float) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    val content = findViewById<android.view.View>(R.id.fragmentContainer)
+                    if (slideOffset > 0f) {
+                        content.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(slideOffset * 25f + 0.1f, slideOffset * 25f + 0.1f, android.graphics.Shader.TileMode.CLAMP))
+                    } else {
+                        content.setRenderEffect(null)
+                    }
+                }
+            }
+            override fun onDrawerOpened(drawerView: android.view.View) {}
+            override fun onDrawerClosed(drawerView: android.view.View) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    findViewById<android.view.View>(R.id.fragmentContainer).setRenderEffect(null)
+                }
+            }
+            override fun onDrawerStateChanged(newState: Int) {}
+        })
+
         val headerView = navView.getHeaderView(0)
         val navUsername = headerView.findViewById<android.widget.TextView>(R.id.navHeaderUsername)
         val navAvatar = headerView.findViewById<android.widget.ImageView>(R.id.navHeaderAvatar)

@@ -110,10 +110,19 @@ class SearchFragment : Fragment() {
         }
         
         val spinnerSort: Spinner = view.findViewById(R.id.spinnerSort)
+        val sortOptions = listOf(
+            "Recently Uploaded",
+            "Recently Released",
+            "A-Z",
+            "Z-A",
+            "Oldest Uploads",
+            "Oldest Releases",
+            "View Count"
+        )
         val sortAdapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_item,
-            listOf("Recently Uploaded", "Most Viewed") // hstream uses recently-released, most-viewed
+            sortOptions
         )
         sortAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerSort.adapter = sortAdapter
@@ -231,15 +240,16 @@ class SearchFragment : Fragment() {
             val header = headers[cat]!!
             val grid = grids[cat]!!
             
-            header.text = "$cat ˅"
+            header.text = cat
+            header.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_down, 0)
             
             header.setOnClickListener {
                 if (grid.visibility == View.GONE) {
                     grid.visibility = View.VISIBLE
-                    header.text = "$cat ˄"
+                    header.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_up, 0)
                 } else {
                     grid.visibility = View.GONE
-                    header.text = "$cat ˅"
+                    header.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_down, 0)
                 }
             }
 
@@ -341,7 +351,16 @@ class SearchFragment : Fragment() {
             }
         }
 
-        val order = if (sortIndex == 0) "recently-released" else "most-viewed"
+        val orderParams = listOf(
+            "recently-uploaded",
+            "recently-released",
+            "title-sort-asc",
+            "title-sort-desc",
+            "oldest-uploaded",
+            "oldest-released",
+            "most-viewed"
+        )
+        val order = if (sortIndex in orderParams.indices) orderParams[sortIndex] else "recently-released"
         params.add("order=$order")
         params.add("view=poster")
         params.add("page=$page")
