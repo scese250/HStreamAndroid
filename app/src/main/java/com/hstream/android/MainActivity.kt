@@ -156,22 +156,22 @@ class MainActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val req = Request.Builder()
-                    .url("https://hstream.moe/user/settings")
+                    .url("https://hstream.moe/")
                     .header("User-Agent", "Mozilla/5.0")
                     .build()
                 val resp = client.newCall(req).execute()
                 val html = resp.body?.string() ?: ""
                 val doc = org.jsoup.Jsoup.parse(html)
                 
-                var nameInput = doc.select("input[name=username]").attr("value")
-                if (nameInput.isEmpty()) {
-                    nameInput = doc.select(".dropdown-menu .dropdown-header").text()
-                }
+                var nameInput = doc.select(".dropdown-header").text().trim()
+                if (nameInput.isEmpty()) nameInput = doc.select("input[name=name], input[name=username]").attr("value")
+                if (nameInput.isEmpty()) nameInput = doc.select(".user-name").text().trim()
                 val finalName = if(nameInput.isNotEmpty()) nameInput else "User"
                 
-                val avatarSrc = doc.select(".user-avatar img").attr("src").ifEmpty {
-                    doc.select("img.rounded-circle").firstOrNull()?.attr("src") ?: ""
-                }
+                var avatarSrc = doc.select(".user-avatar").attr("src")
+                if (avatarSrc.isEmpty()) avatarSrc = doc.select(".user-avatar img").attr("src")
+                if (avatarSrc.isEmpty()) avatarSrc = doc.select("img.rounded-circle").attr("src")
+                if (avatarSrc.isEmpty()) avatarSrc = doc.select("img[alt*=avatar]").attr("src")
                 
                 withContext(Dispatchers.Main) {
                     usernameText.text = finalName
