@@ -31,7 +31,7 @@ class HistoryFragment : Fragment() {
                 onRemoveHistory = { removeHistory(item.url) }
             )
         }
-        recyclerViewHistory.layoutManager = GridLayoutManager(requireContext(), 2)
+        recyclerViewHistory.layoutManager = GridLayoutManager(requireContext(), 1)
         recyclerViewHistory.adapter = adapter
         
         loadHistory()
