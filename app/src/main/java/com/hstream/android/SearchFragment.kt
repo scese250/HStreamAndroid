@@ -111,20 +111,20 @@ class SearchFragment : Fragment() {
         
         val spinnerSort: Spinner = view.findViewById(R.id.spinnerSort)
         val sortOptions = listOf(
-            "Recently\nUploaded",
-            "Recently\nReleased",
+            "Recently Uploaded",
+            "Recently Released",
             "A-Z",
             "Z-A",
-            "Oldest\nUploads",
-            "Oldest\nReleases",
-            "View\nCount"
+            "Oldest Uploads",
+            "Oldest Releases",
+            "View Count"
         )
         val sortAdapter = ArrayAdapter(
             requireContext(),
-            android.R.layout.simple_spinner_item,
+            R.layout.spinner_item,
             sortOptions
         )
-        sortAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        sortAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
         spinnerSort.adapter = sortAdapter
 
         val btnGenres: androidx.cardview.widget.CardView = view.findViewById(R.id.btnGenres)
@@ -140,6 +140,17 @@ class SearchFragment : Fragment() {
         
         val btnApplyFilters: Button = view.findViewById(R.id.btnApplyFilters)
         val editSearch: EditText = view.findViewById(R.id.editSearch)
+        
+        val btnToggleFilters: android.widget.ImageButton = view.findViewById(R.id.btnToggleFilters)
+        val filterContainer: android.widget.LinearLayout = view.findViewById(R.id.filterContainer)
+        
+        btnToggleFilters.setOnClickListener {
+            if (filterContainer.visibility == View.VISIBLE) {
+                filterContainer.visibility = View.GONE
+            } else {
+                filterContainer.visibility = View.VISIBLE
+            }
+        }
         
         progressBar = view.findViewById(R.id.progressSearch)
         val recyclerView: RecyclerView = view.findViewById(R.id.recyclerSearch)
@@ -160,7 +171,7 @@ class SearchFragment : Fragment() {
                 blacklistCount++
             }
         }
-        txtBlacklistSubtitle.text = "$blacklistCount Items Selected"
+        txtBlacklistSubtitle.text = "$blacklistCount Blocked"
         
         if (preSelectedStudio != null) {
             val idx = studiosList.indexOfFirst { it.second == preSelectedStudio }
@@ -177,7 +188,7 @@ class SearchFragment : Fragment() {
         }
 
         btnBlacklist.setOnClickListener {
-            showFilterDialog("Blacklist", selectedBlacklist, txtBlacklistSubtitle, "Items Selected")
+            showFilterDialog("Blacklist", selectedBlacklist, txtBlacklistSubtitle, "Blocked")
         }
 
         btnStudios.setOnClickListener {
@@ -196,6 +207,7 @@ class SearchFragment : Fragment() {
         }
 
         btnApplyFilters.setOnClickListener {
+            filterContainer.visibility = View.GONE
             currentPage = 1
             adapter.clearItems()
             performSearch(editSearch.text.toString(), spinnerSort.selectedItemPosition)
