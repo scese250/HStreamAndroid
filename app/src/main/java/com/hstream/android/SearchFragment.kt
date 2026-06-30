@@ -167,6 +167,10 @@ class SearchFragment : Fragment() {
                 }
             }
         })
+        
+        if (preSelectedStudio != null) {
+            btnApplyFilters.performClick()
+        }
 
         return view
     }
