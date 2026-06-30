@@ -8,7 +8,7 @@
         <item
             android:id="@+id/nav_search"
             android:icon="@drawable/ic_search_rounded"
-            android:title="Search / Filter" />
+            android:title="Search" />
         <item
             android:id="@+id/nav_favs"
             android:icon="@drawable/ic_favorite_rounded"

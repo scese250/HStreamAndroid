@@ -144,6 +144,10 @@ class SearchFragment : Fragment() {
         val btnToggleFilters: android.widget.ImageButton = view.findViewById(R.id.btnToggleFilters)
         val filterContainer: android.widget.LinearLayout = view.findViewById(R.id.filterContainer)
         
+        if (preSelectedStudio != null) {
+            filterContainer.visibility = View.GONE
+        }
+        
         btnToggleFilters.setOnClickListener {
             if (filterContainer.visibility == View.VISIBLE) {
                 filterContainer.visibility = View.GONE
@@ -236,6 +240,9 @@ class SearchFragment : Fragment() {
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (dy > 10 && !isHeaderHidden) {
+                    if (filterContainer.visibility == View.VISIBLE) {
+                        filterContainer.visibility = View.GONE
+                    }
                     isHeaderHidden = true
                     val anim = android.animation.ValueAnimator.ofFloat(1f, 0f)
                     anim.addUpdateListener { valueAnimator ->
