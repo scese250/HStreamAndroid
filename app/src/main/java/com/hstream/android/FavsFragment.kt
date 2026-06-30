@@ -37,7 +37,7 @@ class FavsFragment : Fragment() {
         
         progressBar = view.findViewById(R.id.progressBarFavs)
         layoutNotLoggedIn = view.findViewById(R.id.layoutNotLoggedIn)
-        txtEmptyFavs = view.findViewById(R.id.txtEmptyFavs)
+        txtEmptyFavs = view.findViewById(R.id.textFavsEmpty)
         recyclerViewFavs = view.findViewById(R.id.recyclerViewFavs)
         val btnFavsLogin = view.findViewById<Button>(R.id.btnFavsLogin)
         
