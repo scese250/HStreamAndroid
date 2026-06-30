@@ -532,6 +532,8 @@ class SearchFragment : Fragment() {
                 }
             }
         }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         val toolbar = requireActivity().findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
