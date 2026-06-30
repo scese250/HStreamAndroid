@@ -239,7 +239,7 @@ class SeriesFragment : Fragment() {
     }
 }
 
-class BlurTransformation(private val context: Context, private val radius: Float = 10f) : coil.transform.Transformation {
+class BlurTransformation(private val context: android.content.Context, private val radius: Float = 10f) : coil.transform.Transformation {
     override val cacheKey: String = "blur-$radius"
     override suspend fun transform(input: android.graphics.Bitmap, size: coil.size.Size): android.graphics.Bitmap {
         val rs = android.renderscript.RenderScript.create(context)
