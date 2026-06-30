@@ -5,12 +5,12 @@
     android:layout_height="match_parent"
     android:background="#121212">
 
-    <TextView
+    <ImageView
         android:id="@+id/iconLock"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="🔒"
-        android:textSize="64sp"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@android:drawable/ic_secure"
+        app:tint="#BB86FC"
         app:layout_constraintBottom_toTopOf="@+id/textLock"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -22,7 +22,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Aplicación Bloqueada"
+        android:text="App Locked"
         android:textColor="#E3E3E3"
         android:textSize="20sp"
         android:textStyle="bold"
@@ -37,7 +37,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
         android:backgroundTint="#BB86FC"
-        android:text="Desbloquear"
+        android:text="Unlock"
         android:textColor="#000000"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
