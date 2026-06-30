@@ -205,7 +205,7 @@ class SettingsFragment : Fragment() {
                         
                         val value = when (name) {
                             "searchDesign", "topDesign", "middleDesign" -> searchDesign
-                            else -> input.val()
+                            else -> input.`val`()
                         }
                         formBody.add(name, value)
                     }
