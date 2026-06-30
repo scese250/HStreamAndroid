@@ -51,6 +51,11 @@ class SeriesFragment : Fragment() {
         recycler.layoutManager = LinearLayoutManager(requireContext())
         recycler.adapter = adapter
         
+        val btnFavoriteEpisode = view.findViewById<TextView>(R.id.btnFavoriteEpisode)
+        btnFavoriteEpisode.setOnClickListener {
+            showFavoriteDialog()
+        }
+        
         loadSeriesData(view)
         
         return view
@@ -229,10 +234,138 @@ class SeriesFragment : Fragment() {
                     }
                     adapter.addItems(newItems)
                 }
-                
             } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun showFavoriteDialog() {
+        val episodes = adapter.getItems()
+        if (episodes.isEmpty()) {
+            Toast.makeText(context, "No episodes loaded", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_favorite_episode, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .create()
+            
+        val container = dialogView.findViewById<android.widget.LinearLayout>(R.id.containerEpisodes)
+        
+        for (item in episodes) {
+            val epView = LayoutInflater.from(requireContext()).inflate(R.layout.item_episode, container, false)
+            epView.findViewById<TextView>(R.id.txtEpisodeTitle).text = item.title
+            val imgThumb = epView.findViewById<ImageView>(R.id.imgEpisodeThumbnail)
+            imgThumb.load(item.posterUrl) {
+                crossfade(true)
+            }
+            
+            epView.setOnClickListener {
+                dialog.dismiss()
+                favoriteEpisode(item.url)
+            }
+            
+            container.addView(epView)
+            
+            // Add a divider
+            val divider = View(requireContext())
+            divider.layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 1
+            ).apply { setMargins(0, 16, 0, 16) }
+            divider.setBackgroundColor(android.graphics.Color.parseColor("#333333"))
+            container.addView(divider)
+        }
+        
+        dialogView.findViewById<android.widget.Button>(R.id.btnCancelFavorite).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
+    }
+    
+    private fun favoriteEpisode(url: String) {
+        val mainActivity = requireActivity() as MainActivity
+        val progressBar = view?.findViewById<android.widget.ProgressBar>(R.id.progressSeries)
+        progressBar?.visibility = View.VISIBLE
+        Toast.makeText(context, "Favoriting episode...", Toast.LENGTH_SHORT).show()
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // 1. Fetch HTML to extract CSRF token and Livewire snapshot
+                val getRequest = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Mozilla/5.0")
+                    .build()
+                
+                val response = mainActivity.client.newCall(getRequest).execute()
+                val html = response.body?.string() ?: throw Exception("Empty body")
+                val doc = Jsoup.parse(html)
+                
+                val csrfMeta = doc.selectFirst("meta[name=csrf-token]")
+                val csrfToken = csrfMeta?.attr("content") ?: throw Exception("CSRF token not found")
+                
+                // Extract Livewire snapshot using regex. The div looks like <div wire:snapshot="{...}" wire:effects="[]" wire:id="...">
+                val pattern = Regex("""wire:snapshot="([^"]+)"""")
+                val matches = pattern.findAll(html)
+                var snapshot = ""
+                for (match in matches) {
+                    val content = match.groupValues[1]
+                    val decoded = android.text.Html.fromHtml(content, android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+                    if (decoded.contains("like-button") || decoded.contains("episodeId")) {
+                        snapshot = decoded
+                        break
+                    }
+                }
+                
+                if (snapshot.isEmpty()) throw Exception("Like component snapshot not found")
+                
+                // 2. Make POST request to livewire/update
+                val jsonPayload = """
+                    {
+                        "_token": "$csrfToken",
+                        "components": [
+                            {
+                                "snapshot": $snapshot,
+                                "updates": {},
+                                "calls": [
+                                    {
+                                        "path": "",
+                                        "method": "like",
+                                        "params": []
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                """.trimIndent()
+                
+                val body = okhttp3.RequestBody.create(okhttp3.MediaType.parse("application/json"), jsonPayload)
+                val postRequest = Request.Builder()
+                    .url("https://hstream.moe/livewire/update")
+                    .header("User-Agent", "Mozilla/5.0")
+                    .header("X-CSRF-TOKEN", csrfToken)
+                    .header("X-Requested-With", "XMLHttpRequest")
+                    .header("Content-Type", "application/json")
+                    .post(body)
+                    .build()
+                    
+                val postResponse = mainActivity.client.newCall(postRequest).execute()
+                if (!postResponse.isSuccessful) {
+                    throw Exception("Failed to favorite: ${postResponse.code}")
+                }
+                
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "Error loading series: ${e.message}", Toast.LENGTH_SHORT).show()
+                    progressBar?.visibility = View.GONE
+                    Toast.makeText(context, "Added to favorites!", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    progressBar?.visibility = View.GONE
+                    Toast.makeText(context, "Error saving favorite: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }

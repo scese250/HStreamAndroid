@@ -14,6 +14,8 @@ class EpisodeAdapter(
     private val onItemClick: (String) -> Unit
 ) : RecyclerView.Adapter<EpisodeAdapter.ViewHolder>() {
 
+    fun getItems(): List<VideoItem> = items
+
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val imageThumbnail: ImageView = view.findViewById(R.id.imgEpisodeThumbnail)
         val textTitle: TextView = view.findViewById(R.id.txtEpisodeTitle)
