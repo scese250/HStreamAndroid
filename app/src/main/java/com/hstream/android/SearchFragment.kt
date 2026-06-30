@@ -29,6 +29,7 @@ class SearchFragment : Fragment() {
     private lateinit var progressBar: ProgressBar
     private var currentPage = 1
     private var isLoading = false
+    private var isPosterLayout = true
     
     private val client: OkHttpClient
         get() = (requireActivity() as MainActivity).client
@@ -195,13 +196,11 @@ class SearchFragment : Fragment() {
             showMultiSelectDialog("Studios", studiosList.map { it.first }.toTypedArray(), selectedStudios, txtStudiosSubtitle)
         }
         
-        var isPosterLayout = searchDesign != "thumbnail"
+        isPosterLayout = searchDesign != "thumbnail"
         txtToggleLayout.text = if (isPosterLayout) "Poster" else "Thumbnail"
         
         btnToggleLayout.setOnClickListener {
             isPosterLayout = !isPosterLayout
-            val design = if (isPosterLayout) "cover" else "thumbnail"
-            prefs.edit().putString("searchDesign", design).apply()
             txtToggleLayout.text = if (isPosterLayout) "Poster" else "Thumbnail"
             recyclerView.layoutManager = GridLayoutManager(context, if (isPosterLayout) 2 else 1)
             
@@ -476,9 +475,7 @@ class SearchFragment : Fragment() {
         val order = if (sortIndex in orderParams.indices) orderParams[sortIndex] else "recently-released"
         params.add("order=$order")
         
-        val prefs = requireActivity().getSharedPreferences("HStreamPrefs", android.content.Context.MODE_PRIVATE)
-        val searchDesign = prefs.getString("searchDesign", "cover")
-        val viewParam = if (searchDesign == "thumbnail") "thumbnail" else "poster"
+        val viewParam = if (isPosterLayout) "poster" else "thumbnail"
         params.add("view=$viewParam")
         
         params.add("page=$page")
