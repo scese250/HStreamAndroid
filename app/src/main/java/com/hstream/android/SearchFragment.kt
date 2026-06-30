@@ -348,7 +348,7 @@ class SearchFragment : Fragment() {
         val params = mutableListOf<String>()
 
         if (query.isNotEmpty()) {
-            params.add("key=${URLEncoder.encode(query, "UTF-8")}")
+            params.add("search=${URLEncoder.encode(query, "UTF-8")}")
         }
 
         // &tags[]=action&tags[]=comedy...
