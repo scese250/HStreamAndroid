@@ -127,6 +127,20 @@ class SearchFragment : Fragment() {
         )
         sortAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
         spinnerSort.adapter = sortAdapter
+        
+        var isSpinnerInitialized = false
+        spinnerSort.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (isSpinnerInitialized) {
+                    currentPage = 1
+                    adapter.clearItems()
+                    performSearch(editSearch.text.toString(), position)
+                } else {
+                    isSpinnerInitialized = true
+                }
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+        }
 
         val btnGenres: androidx.cardview.widget.CardView = view.findViewById(R.id.btnGenres)
         val btnBlacklist: androidx.cardview.widget.CardView = view.findViewById(R.id.btnBlacklist)
