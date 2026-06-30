@@ -47,7 +47,8 @@ class HistoryFragment : Fragment() {
         } else {
             txtEmptyHistory.visibility = View.GONE
             recyclerViewHistory.visibility = View.VISIBLE
-            adapter.updateItems(historyList)
+            adapter.clearItems()
+            adapter.addItems(historyList)
         }
     }
     
