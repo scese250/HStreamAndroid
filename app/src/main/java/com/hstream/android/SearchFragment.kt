@@ -204,6 +204,11 @@ class SearchFragment : Fragment() {
             prefs.edit().putString("searchDesign", design).apply()
             txtToggleLayout.text = if (isPosterLayout) "Poster" else "Thumbnail"
             recyclerView.layoutManager = GridLayoutManager(context, if (isPosterLayout) 2 else 1)
+            
+            // Reload the search results so the server returns the correct view format
+            currentPage = 1
+            adapter.clearItems()
+            performSearch(editSearch.text.toString(), spinnerSort.selectedItemPosition)
         }
 
         btnApplyFilters.setOnClickListener {
