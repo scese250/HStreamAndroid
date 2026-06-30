@@ -303,8 +303,8 @@ class SeriesFragment : Fragment() {
                 val html = response.body?.string() ?: throw Exception("Empty body")
                 val doc = Jsoup.parse(html)
                 
-                val csrfMeta = doc.selectFirst("meta[name=csrf-token]")
-                val csrfToken = csrfMeta?.attr("content") ?: throw Exception("CSRF token not found")
+                val scriptTag = doc.selectFirst("script[data-csrf]")
+                val csrfToken = scriptTag?.attr("data-csrf") ?: throw Exception("CSRF token not found")
                 
                 // Extract Livewire snapshot using regex. The div looks like <div wire:snapshot="{...}" wire:effects="[]" wire:id="...">
                 val pattern = Regex("""wire:snapshot="([^"]+)"""")
