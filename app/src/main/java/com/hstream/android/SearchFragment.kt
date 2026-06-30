@@ -472,7 +472,7 @@ class SearchFragment : Fragment() {
         params.add("order=$order")
         
         val prefs = requireActivity().getSharedPreferences("HStreamPrefs", android.content.Context.MODE_PRIVATE)
-        val searchDesign = prefs.getString("searchDesign", "poster")
+        val searchDesign = prefs.getString("searchDesign", "cover")
         val viewParam = if (searchDesign == "thumbnail") "thumbnail" else "poster"
         params.add("view=$viewParam")
         

@@ -161,7 +161,7 @@ class SettingsFragment : Fragment() {
         txtSearchDesignState.text = if (switchSearchDesign.isChecked) "Poster" else "Thumbnail"
         
         switchSearchDesign.setOnCheckedChangeListener { _, isChecked ->
-            val newValue = if (isChecked) "poster" else "thumbnail"
+            val newValue = if (isChecked) "cover" else "thumbnail"
             txtSearchDesignState.text = if (isChecked) "Poster" else "Thumbnail"
             
             searchDesign = newValue
@@ -187,70 +187,30 @@ class SettingsFragment : Fragment() {
                 val respSettings = client.newCall(reqSettings).execute()
                 val html = respSettings.body?.string() ?: ""
                 val doc = Jsoup.parse(html)
+                val token = doc.select("input[name=_token]").firstOrNull()?.attr("value") ?: ""
                 
                 val formBody = FormBody.Builder()
-                val form = doc.selectFirst("form[action$=/settings], form[action$=/user/settings]") ?: doc.selectFirst("form")
-                
-                var foundSearch = false
-                var foundTop = false
-                var foundMiddle = false
-                
-                if (form != null) {
-                    val inputs = form.select("input, select, textarea")
-                    val addedNames = mutableSetOf<String>()
-                    
-                    for (input in inputs) {
-                        val name = input.attr("name")
-                        if (name.isEmpty()) continue
-                        
-                        val type = input.attr("type").lowercase()
-                        if (type == "checkbox" || type == "radio") {
-                            if (!input.hasAttr("checked") && name != "searchDesign" && name != "topDesign" && name != "middleDesign" && name != "search_design" && name != "top_design" && name != "middle_design") {
-                                continue
-                            }
-                        }
-                        
-                        if (name == "searchDesign" || name == "search_design") foundSearch = true
-                        if (name == "topDesign" || name == "top_design") foundTop = true
-                        if (name == "middleDesign" || name == "middle_design") foundMiddle = true
-                        
-                        val value = when (name) {
-                            "searchDesign", "topDesign", "middleDesign", 
-                            "search_design", "top_design", "middle_design" -> searchDesign
-                            else -> input.`val`()
-                        }
-                        
-                        // Prevent duplicate radio buttons from being added multiple times
-                        if (!addedNames.contains(name)) {
-                            formBody.add(name, value)
-                            addedNames.add(name)
-                        }
-                    }
-                } else {
-                    val token = doc.select("input[name=_token]").firstOrNull()?.attr("value") ?: ""
-                    formBody.add("_token", token)
-                }
-                
-                if (!foundSearch) formBody.add("searchDesign", searchDesign)
-                if (!foundTop) formBody.add("topDesign", topDesign)
-                if (!foundMiddle) formBody.add("middleDesign", middleDesign)
+                    .add("_token", token)
+                    .add("searchDesign", searchDesign)
+                    .add("topDesign", topDesign)
+                    .add("middleDesign", middleDesign)
+                    .build()
                     
                 val req = Request.Builder()
                     .url("https://hstream.moe/user/settings")
                     .header("User-Agent", "Mozilla/5.0")
                     .header("Referer", "https://hstream.moe/user/settings")
-                    .post(formBody.build())
+                    .post(formBody)
                     .build()
                     
                 val saveResp = client.newCall(req).execute()
-                val saveHtml = saveResp.body?.string() ?: ""
+                val success = saveResp.isSuccessful || saveResp.isRedirect
                 saveResp.close()
                 
                 withContext(Dispatchers.Main) {
                     switchView.isEnabled = true
                     statusText.text = if (isChecked) "Poster" else "Thumbnail"
-                    
-                    if (saveResp.isSuccessful || saveResp.isRedirect) {
+                    if (success) {
                         Toast.makeText(context, "Layout updated successfully!", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(context, "Failed to update layout on server.", Toast.LENGTH_SHORT).show()
