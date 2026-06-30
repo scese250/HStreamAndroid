@@ -227,8 +227,30 @@ class SearchFragment : Fragment() {
             }
         }
 
+        val toolbar = requireActivity().findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        val searchHeader = view.findViewById<android.widget.FrameLayout>(R.id.searchHeader)
+        var isHeaderHidden = false
+
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                if (dy > 10 && !isHeaderHidden) {
+                    isHeaderHidden = true
+                    val transition = androidx.transition.Slide(android.view.Gravity.TOP)
+                    transition.duration = 200
+                    androidx.transition.TransitionManager.beginDelayedTransition(toolbar.parent as android.view.ViewGroup, transition)
+                    androidx.transition.TransitionManager.beginDelayedTransition(searchHeader.parent as android.view.ViewGroup, transition)
+                    toolbar.visibility = View.GONE
+                    searchHeader.visibility = View.GONE
+                } else if (dy < -10 && isHeaderHidden) {
+                    isHeaderHidden = false
+                    val transition = androidx.transition.Slide(android.view.Gravity.TOP)
+                    transition.duration = 200
+                    androidx.transition.TransitionManager.beginDelayedTransition(toolbar.parent as android.view.ViewGroup, transition)
+                    androidx.transition.TransitionManager.beginDelayedTransition(searchHeader.parent as android.view.ViewGroup, transition)
+                    toolbar.visibility = View.VISIBLE
+                    searchHeader.visibility = View.VISIBLE
+                }
+                
                 if (dy > 0) {
                     val visibleItemCount = layoutManager.childCount
                     val totalItemCount = layoutManager.itemCount

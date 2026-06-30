@@ -285,11 +285,27 @@ class SettingsFragment : Fragment() {
         )
 
         val allChips = mutableListOf<TextView>()
+        val categoryChips = mutableMapOf<String, MutableList<TextView>>()
 
         categories.forEach { (cat, tags) ->
             val header = headers[cat]!!
             val grid = grids[cat]!!
             
+            val updateHeaderFn = {
+                var c = 0
+                categoryChips[cat]?.forEach { if(it.isSelected) c++ }
+                if (c > 0) {
+                    val countStr = "  •  $c"
+                    header.text = android.text.SpannableStringBuilder(cat).apply {
+                        append(android.text.SpannableString(countStr).apply {
+                            setSpan(android.text.style.ForegroundColorSpan(android.graphics.Color.parseColor("#BB86FC")), 0, countStr.length, 0)
+                        })
+                    }
+                } else {
+                    header.text = cat
+                }
+            }
+
             header.text = cat
             header.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_down, 0)
             
@@ -323,11 +339,14 @@ class SettingsFragment : Fragment() {
                     setOnClickListener {
                         isSelected = !isSelected
                         setTextColor(if (isSelected) android.graphics.Color.parseColor("#BB86FC") else android.graphics.Color.parseColor("#E3E3E3"))
+                        updateHeaderFn()
                     }
                 }
                 grid.addView(chip)
                 allChips.add(chip)
+                categoryChips.getOrPut(cat) { mutableListOf() }.add(chip)
             }
+            updateHeaderFn()
         }
 
         dialogView.findViewById<Button>(R.id.btnDialogCancel).setOnClickListener {

@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
             when (menuItem.itemId) {
                 R.id.nav_home -> replaceFragment(HomeFragment(), "Home")
                 R.id.nav_search -> replaceFragment(SearchFragment(), "Search")
-                R.id.nav_favs -> replaceFragment(FavsFragment(), "Favs")
+                R.id.nav_favs -> replaceFragment(FavsFragment(), "Favorites")
                 R.id.nav_settings -> replaceFragment(SettingsFragment(), "Settings")
             }
             drawerLayout.closeDrawers()
