@@ -128,6 +128,8 @@ class SearchFragment : Fragment() {
         sortAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
         spinnerSort.adapter = sortAdapter
         
+        val editSearch: EditText = view.findViewById(R.id.editSearch)
+        
         var isSpinnerInitialized = false
         spinnerSort.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -151,7 +153,6 @@ class SearchFragment : Fragment() {
         val txtStudiosSubtitle: android.widget.TextView = view.findViewById(R.id.txtStudiosSubtitle)
         
         val btnApplyFilters: Button = view.findViewById(R.id.btnApplyFilters)
-        val editSearch: EditText = view.findViewById(R.id.editSearch)
         
         val btnToggleFilters: android.widget.ImageButton = view.findViewById(R.id.btnToggleFilters)
         val filterContainer: android.widget.LinearLayout = view.findViewById(R.id.filterContainer)
