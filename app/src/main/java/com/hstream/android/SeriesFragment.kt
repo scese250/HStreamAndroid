@@ -91,7 +91,14 @@ class SeriesFragment : Fragment() {
                 if (posterUrl.startsWith("/")) posterUrl = "https://hstream.moe$posterUrl"
                 
                 // Extract Synopsis
-                val synopsis = doc.select(".prose p").joinToString("\n\n") { it.text() }
+                var synopsis = doc.selectFirst("meta[property=og:description]")?.attr("content") ?: ""
+                if (synopsis.isEmpty()) {
+                    synopsis = doc.selectFirst("meta[name=description]")?.attr("content") ?: ""
+                }
+                if (synopsis.isEmpty()) {
+                    // Fallback to text inside mt-8 if meta fails
+                    synopsis = doc.select(".mt-8 p").joinToString("\n\n") { it.text() }
+                }
                 
                 // Extract Tags
                 val tags = doc.select("a[href*=/search?tags=]").joinToString(" • ") { it.text() }
