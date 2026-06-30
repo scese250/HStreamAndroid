@@ -83,11 +83,31 @@ class SearchFragment : Fragment() {
     private val selectedBlacklist = BooleanArray(genresList.size)
     private val selectedStudios = BooleanArray(studiosList.size)
 
+    companion object {
+        fun newInstance(studioId: String? = null): SearchFragment {
+            val fragment = SearchFragment()
+            if (studioId != null) {
+                val args = Bundle()
+                args.putString("studioId", studioId)
+                fragment.arguments = args
+            }
+            return fragment
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_search, container, false)
+        
+        val preSelectedStudio = arguments?.getString("studioId")
+        if (preSelectedStudio != null) {
+            val idx = studiosList.indexOfFirst { it.second == preSelectedStudio }
+            if (idx >= 0) {
+                selectedStudios[idx] = true
+            }
+        }
         
         val spinnerSort: Spinner = view.findViewById(R.id.spinnerSort)
         val sortAdapter = ArrayAdapter(

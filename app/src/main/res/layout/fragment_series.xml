@@ -13,8 +13,9 @@
         <ImageView
             android:id="@+id/imgSeriesPoster"
             android:layout_width="match_parent"
-            android:layout_height="250dp"
-            android:scaleType="centerCrop"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter"
             android:layout_marginBottom="16dp"
             android:background="#2D2D2D" />
 
@@ -25,6 +26,26 @@
             android:textColor="#BB86FC"
             android:textSize="20sp"
             android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/txtSeriesDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#A0A0A0"
+            android:textSize="14sp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/txtSeriesStudio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#03DAC5"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground"
             android:layout_marginBottom="8dp" />
 
         <TextView

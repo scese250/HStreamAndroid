@@ -61,6 +61,8 @@ class SeriesFragment : Fragment() {
         
         val imgPoster: ImageView = view.findViewById(R.id.imgSeriesPoster)
         val txtTitle: TextView = view.findViewById(R.id.txtSeriesTitle)
+        val txtDate: TextView = view.findViewById(R.id.txtSeriesDate)
+        val txtStudio: TextView = view.findViewById(R.id.txtSeriesStudio)
         val txtTags: TextView = view.findViewById(R.id.txtSeriesTags)
         val txtSynopsis: TextView = view.findViewById(R.id.txtSeriesSynopsis)
         
@@ -80,7 +82,6 @@ class SeriesFragment : Fragment() {
                 val title = doc.selectFirst("h1")?.text() ?: doc.title()
                 
                 // Extract Poster
-                // HStream series poster is usually the first large img or the one with specific classes
                 var posterUrl = doc.selectFirst(".md\\:w-1\\/4 img")?.attr("src") ?: ""
                 if (posterUrl.isEmpty()) {
                     posterUrl = doc.selectFirst("img[alt*=$title]")?.attr("src") ?: ""
@@ -90,13 +91,22 @@ class SeriesFragment : Fragment() {
                 }
                 if (posterUrl.startsWith("/")) posterUrl = "https://hstream.moe$posterUrl"
                 
+                // Extract Date
+                val releaseDate = doc.selectFirst("i.fa-calendar")?.parent()?.text()?.trim() ?: ""
+                
+                // Extract Studio
+                val studioLink = doc.selectFirst("a[href*=studios%5B0%5D]")
+                val studioName = studioLink?.text()?.trim() ?: ""
+                // El href es tipo /search?order=recently-uploaded&studios[0]=poro
+                val studioUrl = studioLink?.attr("href") ?: ""
+                val studioId = Regex("studios%5B0%5D=([^&]+)").find(studioUrl)?.groupValues?.get(1)
+                
                 // Extract Synopsis
                 var synopsis = doc.selectFirst("meta[property=og:description]")?.attr("content") ?: ""
                 if (synopsis.isEmpty()) {
                     synopsis = doc.selectFirst("meta[name=description]")?.attr("content") ?: ""
                 }
                 if (synopsis.isEmpty()) {
-                    // Fallback to text inside mt-8 if meta fails
                     synopsis = doc.select(".mt-8 p").joinToString("\n\n") { it.text() }
                 }
                 
@@ -115,10 +125,7 @@ class SeriesFragment : Fragment() {
                     if (itemUrl.startsWith("/")) itemUrl = "https://hstream.moe$itemUrl"
                     
                     if (seenUrls.contains(itemUrl)) continue
-                    
-                    // Filtrar estrictamente solo links que sean episodios de ESTA serie
                     if (!itemUrl.matches(episodeRegex)) continue
-                    
                     seenUrls.add(itemUrl)
                     
                     val img = link.selectFirst("img") ?: continue
@@ -134,6 +141,30 @@ class SeriesFragment : Fragment() {
                 
                 withContext(Dispatchers.Main) {
                     txtTitle.text = title
+                    
+                    if (releaseDate.isNotEmpty()) {
+                        txtDate.text = "Lanzamiento: $releaseDate"
+                        txtDate.visibility = View.VISIBLE
+                    } else {
+                        txtDate.visibility = View.GONE
+                    }
+                    
+                    if (studioName.isNotEmpty()) {
+                        txtStudio.text = "Estudio: $studioName"
+                        txtStudio.visibility = View.VISIBLE
+                        txtStudio.setOnClickListener {
+                            if (studioId != null) {
+                                val fragment = SearchFragment.newInstance(studioId)
+                                parentFragmentManager.beginTransaction()
+                                    .replace(R.id.fragmentContainer, fragment)
+                                    .addToBackStack(null)
+                                    .commit()
+                            }
+                        }
+                    } else {
+                        txtStudio.visibility = View.GONE
+                    }
+                    
                     txtTags.text = tags
                     txtSynopsis.text = synopsis
                     imgPoster.load(posterUrl) {
