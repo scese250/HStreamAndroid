@@ -61,10 +61,34 @@ class LoginActivity : AppCompatActivity() {
                     getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).edit().putBoolean("is_logged_in", true).apply()
                     Toast.makeText(this@LoginActivity, "Login exitoso", Toast.LENGTH_SHORT).show()
 
-                    val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
-                    finish()
+                    // Sync layout setting from server
+                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                        try {
+                            val client = okhttp3.OkHttpClient.Builder()
+                                .cookieJar(PersistentCookieJar(this@LoginActivity))
+                                .build()
+                            val req = okhttp3.Request.Builder().url("https://hstream.moe/user/settings").build()
+                            val resp = client.newCall(req).execute()
+                            val html = resp.body?.string() ?: ""
+                            val doc = org.jsoup.Jsoup.parse(html)
+                            
+                            val isThumbnail = doc.select("input[name=searchDesign][value=thumbnail], input[name=search_design][value=thumbnail]").firstOrNull()?.hasAttr("checked") ?: false
+                            val designValue = if (isThumbnail) "thumbnail" else "cover"
+                            
+                            getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).edit()
+                                .putString("searchDesign", designValue)
+                                .apply()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                        
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            startActivity(intent)
+                            finish()
+                        }
+                    }
                 }
             }
         }

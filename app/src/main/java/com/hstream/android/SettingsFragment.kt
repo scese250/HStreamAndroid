@@ -154,6 +154,9 @@ class SettingsFragment : Fragment() {
     }
     
     private fun setupDesignSwitch(view: View) {
+        val prefs = requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
+        searchDesign = prefs.getString("searchDesign", "cover") ?: "cover"
+        
         val switchSearchDesign = view.findViewById<Switch>(R.id.switchLayout)
         val txtSearchDesignState = view.findViewById<TextView>(R.id.txtLayoutStatus)
         
