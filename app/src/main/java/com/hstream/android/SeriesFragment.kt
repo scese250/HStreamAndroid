@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.Request
 import org.jsoup.Jsoup
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 class SeriesFragment : Fragment() {
 
@@ -288,8 +289,6 @@ class SeriesFragment : Fragment() {
     
     private fun favoriteEpisode(url: String) {
         val mainActivity = requireActivity() as MainActivity
-        val progressBar = view?.findViewById<android.widget.ProgressBar>(R.id.progressSeries)
-        progressBar?.visibility = View.VISIBLE
         Toast.makeText(context, "Favoriting episode...", Toast.LENGTH_SHORT).show()
         
         CoroutineScope(Dispatchers.IO).launch {
@@ -342,7 +341,12 @@ class SeriesFragment : Fragment() {
                     }
                 """.trimIndent()
                 
-                val body = okhttp3.RequestBody.create(okhttp3.MediaType.parse("application/json"), jsonPayload)
+                val mediaType = "application/json".toMediaTypeOrNull()
+                val body = if (mediaType != null) {
+                    okhttp3.RequestBody.create(mediaType, jsonPayload)
+                } else {
+                    okhttp3.RequestBody.create(null, jsonPayload)
+                }
                 val postRequest = Request.Builder()
                     .url("https://hstream.moe/livewire/update")
                     .header("User-Agent", "Mozilla/5.0")
@@ -358,13 +362,11 @@ class SeriesFragment : Fragment() {
                 }
                 
                 withContext(Dispatchers.Main) {
-                    progressBar?.visibility = View.GONE
                     Toast.makeText(context, "Added to favorites!", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    progressBar?.visibility = View.GONE
                     Toast.makeText(context, "Error saving favorite: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
