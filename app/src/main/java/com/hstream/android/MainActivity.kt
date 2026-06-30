@@ -41,6 +41,14 @@ class MainActivity : AppCompatActivity() {
             .cookieJar(PersistentCookieJar(this))
             .build()
             
+        val prefs = getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("privacy_lock", false)) {
+            window.setFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SECURE,
+                android.view.WindowManager.LayoutParams.FLAG_SECURE
+            )
+        }
+
         setContentView(R.layout.activity_main)
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
@@ -78,6 +86,19 @@ class MainActivity : AppCompatActivity() {
             .replace(R.id.fragmentContainer, fragment)
             .commit()
         supportActionBar?.title = title
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val prefs = getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("privacy_lock", false)) {
+            window.setFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SECURE,
+                android.view.WindowManager.LayoutParams.FLAG_SECURE
+            )
+        } else {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        }
     }
 
     override fun onBackPressed() {
