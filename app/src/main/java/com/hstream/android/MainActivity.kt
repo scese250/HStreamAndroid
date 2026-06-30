@@ -189,16 +189,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun handleVideoClick(url: String) {
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Opciones")
-            .setMessage("¿Qué deseas hacer?")
-            .setPositiveButton("Mirar Capítulo") { _, _ ->
-                playVideo(url)
-            }
-            .setNegativeButton("Ver Serie") { _, _ ->
-                openSeriesFragment(url)
-            }
-            .show()
+        val dialogView = layoutInflater.inflate(R.layout.dialog_video_options, null)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialogView.findViewById<android.widget.Button>(R.id.btnWatchEpisode).setOnClickListener {
+            dialog.dismiss()
+            playVideo(url)
+        }
+
+        dialogView.findViewById<android.widget.Button>(R.id.btnViewSeries).setOnClickListener {
+            dialog.dismiss()
+            openSeriesFragment(url)
+        }
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
     }
 
     fun openSeriesFragment(url: String) {
