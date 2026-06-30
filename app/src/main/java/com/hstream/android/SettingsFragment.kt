@@ -98,6 +98,7 @@ class SettingsFragment : Fragment() {
         val btnLogin = view.findViewById<Button>(R.id.btnSettingsLogin)
         val cardIndicator = view.findViewById<androidx.cardview.widget.CardView>(R.id.sessionIndicatorCard)
         val imgAvatar = view.findViewById<android.widget.ImageView>(R.id.imgSettingsAvatar)
+        val txtUsername = view.findViewById<TextView>(R.id.txtSettingsUsername)
         val btnEditBlacklist = view.findViewById<Button>(R.id.btnEditBlacklist)
         val txtBlacklist = view.findViewById<TextView>(R.id.txtBlacklistPreview)
         val switchLayout = view.findViewById<Switch>(R.id.switchLayout)
@@ -105,9 +106,14 @@ class SettingsFragment : Fragment() {
         
         if (isLoggedIn) {
             cardIndicator.setCardBackgroundColor(android.graphics.Color.parseColor("#34C759"))
+            val savedUser = prefs.getString("username", "User")
+            txtUsername.text = savedUser
+            
             val savedAvatar = prefs.getString("avatar_url", "")
             if (!savedAvatar.isNullOrEmpty()) {
-                imgAvatar.load(savedAvatar)
+                imgAvatar.load(savedAvatar) {
+                    transformations(coil.transform.CircleCropTransformation())
+                }
             }
             btnLogin.text = "LOGOUT"
             btnLogin.setOnClickListener {
@@ -133,6 +139,7 @@ class SettingsFragment : Fragment() {
             
         } else {
             cardIndicator.setCardBackgroundColor(android.graphics.Color.parseColor("#FF3B30"))
+            txtUsername.text = "Guest"
             imgAvatar.setImageResource(android.R.drawable.ic_menu_camera)
             imgAvatar.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#888888"))
             btnLogin.text = "LOGIN"

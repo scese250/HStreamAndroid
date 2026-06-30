@@ -95,7 +95,9 @@ class MainActivity : AppCompatActivity() {
             if (!savedUser.isNullOrEmpty()) {
                 navUsername.text = savedUser
                 if (!savedAvatar.isNullOrEmpty()) {
-                    navAvatar.load(savedAvatar)
+                    navAvatar.load(savedAvatar) {
+                        transformations(coil.transform.CircleCropTransformation())
+                    }
                 }
             } else {
                 fetchUserProfile(navUsername, navAvatar)
@@ -174,7 +176,9 @@ class MainActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     usernameText.text = finalName
                     if (avatarSrc.isNotEmpty()) {
-                        avatarImage.load(avatarSrc)
+                        avatarImage.load(avatarSrc) {
+                            transformations(coil.transform.CircleCropTransformation())
+                        }
                         getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).edit()
                             .putString("username", finalName)
                             .putString("avatar_url", avatarSrc)
