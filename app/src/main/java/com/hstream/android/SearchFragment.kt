@@ -190,6 +190,20 @@ class SearchFragment : Fragment() {
             adapter.clearItems()
             performSearch(editSearch.text.toString(), spinnerSort.selectedItemPosition)
         }
+        
+        editSearch.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH ||
+                (event != null && event.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)) {
+                
+                val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(editSearch.windowToken, 0)
+                
+                btnApplyFilters.performClick()
+                true
+            } else {
+                false
+            }
+        }
 
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
