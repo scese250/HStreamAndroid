@@ -111,13 +111,13 @@ class SearchFragment : Fragment() {
         
         val spinnerSort: Spinner = view.findViewById(R.id.spinnerSort)
         val sortOptions = listOf(
-            "Recently Uploaded",
-            "Recently Released",
+            "Recently\nUploaded",
+            "Recently\nReleased",
             "A-Z",
             "Z-A",
-            "Oldest Uploads",
-            "Oldest Releases",
-            "View Count"
+            "Oldest\nUploads",
+            "Oldest\nReleases",
+            "View\nCount"
         )
         val sortAdapter = ArrayAdapter(
             requireContext(),
