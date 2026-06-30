@@ -202,7 +202,8 @@ class SeriesFragment : Fragment() {
                     }
                     
                     if (studioName.isNotEmpty()) {
-                        txtStudio.text = "Studio: $studioName"
+                        txtStudio.text = studioName
+                        txtStudio.paintFlags = txtStudio.paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
                         txtStudio.visibility = View.VISIBLE
                         txtStudio.setOnClickListener {
                             if (studioId != null) {

@@ -74,12 +74,9 @@
                         android:id="@+id/txtSeriesStudio"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textColor="#BB86FC"
+                        android:textColor="#00BCD4"
                         android:textSize="14sp"
                         android:textStyle="bold"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="6dp"
-                        android:background="@drawable/bg_chip_selector"
                         android:clickable="true"
                         android:focusable="true" />
                 </LinearLayout>
@@ -89,8 +86,8 @@
                 android:id="@+id/txtSeriesTags"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="#FFB74D"
-                android:textSize="14sp"
+                android:textColor="#8093F1"
+                android:textSize="13sp"
                 android:lineSpacingExtra="4dp"
                 android:layout_marginBottom="16dp" />
 
@@ -140,8 +137,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_box"
-                android:padding="16dp"
-                android:layout_marginBottom="24dp">
+                android:padding="12dp"
+                android:layout_marginBottom="16dp">
                 
                 <TextView
                     android:id="@+id/txtSeriesSynopsis"

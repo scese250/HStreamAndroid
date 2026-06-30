@@ -46,7 +46,7 @@ class SettingsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_settings, container, false)
-        val spinner: Spinner = view.findViewById(R.id.spinnerPlayer)
+        val btnEditPlayer: android.widget.ImageButton = view.findViewById(R.id.btnEditPlayer)
 
         val pm = requireContext().packageManager
         val queryIntent = Intent(Intent.ACTION_VIEW)
@@ -54,7 +54,7 @@ class SettingsFragment : Fragment() {
         val resolveInfos = pm.queryIntentActivities(queryIntent, 0)
 
         val dynamicPlayers = mutableListOf<Pair<String, String>>()
-        dynamicPlayers.add(Pair("Preguntar Siempre", ""))
+        dynamicPlayers.add(Pair("Always Ask", ""))
 
         for (info in resolveInfos) {
             val appName = info.loadLabel(pm).toString()
@@ -64,26 +64,22 @@ class SettingsFragment : Fragment() {
             }
         }
 
-        val adapter = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_spinner_item,
-            dynamicPlayers.map { it.first }
-        )
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner.adapter = adapter
-
         val prefs = requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
-        val savedPackage = prefs.getString("default_player", "")
         
-        val selectedIndex = dynamicPlayers.indexOfFirst { it.second == savedPackage }.takeIf { it >= 0 } ?: 0
-        spinner.setSelection(selectedIndex)
-
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val selectedPackage = dynamicPlayers[position].second
+        btnEditPlayer.setOnClickListener {
+            val savedPackage = prefs.getString("default_player", "")
+            val selectedIndex = dynamicPlayers.indexOfFirst { it.second == savedPackage }.takeIf { it >= 0 } ?: 0
+            
+            val builder = AlertDialog.Builder(requireContext())
+            builder.setTitle("Select Video Player")
+            val playerNames = dynamicPlayers.map { it.first }.toTypedArray()
+            builder.setSingleChoiceItems(playerNames, selectedIndex) { dialog, which ->
+                val selectedPackage = dynamicPlayers[which].second
                 prefs.edit().putString("default_player", selectedPackage).apply()
+                dialog.dismiss()
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+            builder.setNegativeButton("Cancel") { dialog, _ -> dialog.dismiss() }
+            builder.show()
         }
 
         val switchPrivacy: Switch = view.findViewById(R.id.switchPrivacy)
@@ -105,12 +101,13 @@ class SettingsFragment : Fragment() {
         val prefs = requireActivity().getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
         val isLoggedIn = prefs.getBoolean("is_logged_in", false)
         
-        val btnLogin = view.findViewById<Button>(R.id.btnLogin)
-        val cardIndicator = view.findViewById<androidx.cardview.widget.CardView>(R.id.cardLoginStatusIndicator)
+        val btnLogin = view.findViewById<Button>(R.id.btnSettingsLogin)
+        val cardIndicator = view.findViewById<androidx.cardview.widget.CardView>(R.id.sessionIndicatorCard)
         val imgAvatar = view.findViewById<android.widget.ImageView>(R.id.imgSettingsAvatar)
         val btnEditBlacklist = view.findViewById<Button>(R.id.btnEditBlacklist)
-        val txtBlacklist = view.findViewById<TextView>(R.id.txtBlacklist)
-        val layoutWebsiteDesign = view.findViewById<View>(R.id.layoutWebsiteDesign)
+        val txtBlacklist = view.findViewById<TextView>(R.id.txtBlacklistPreview)
+        val switchLayout = view.findViewById<Switch>(R.id.switchLayout)
+        val txtLayoutStatus = view.findViewById<TextView>(R.id.txtLayoutStatus)
         
         if (isLoggedIn) {
             cardIndicator.setCardBackgroundColor(android.graphics.Color.parseColor("#34C759"))
@@ -118,7 +115,7 @@ class SettingsFragment : Fragment() {
             if (!savedAvatar.isNullOrEmpty()) {
                 imgAvatar.load(savedAvatar)
             }
-            btnLogin.text = "Log Out"
+            btnLogin.text = "LOGOUT"
             btnLogin.setOnClickListener {
                 prefs.edit().putBoolean("is_logged_in", false).apply()
                 // Borrar cookies
@@ -130,7 +127,8 @@ class SettingsFragment : Fragment() {
             }
             
             btnEditBlacklist.visibility = View.VISIBLE
-            layoutWebsiteDesign.visibility = View.VISIBLE
+            switchLayout.visibility = View.VISIBLE
+            txtLayoutStatus.visibility = View.VISIBLE
             
             setupDesignSwitch(view)
             loadBlacklist(txtBlacklist, view)
@@ -143,19 +141,20 @@ class SettingsFragment : Fragment() {
             cardIndicator.setCardBackgroundColor(android.graphics.Color.parseColor("#FF3B30"))
             imgAvatar.setImageResource(android.R.drawable.ic_menu_camera)
             imgAvatar.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#888888"))
-            btnLogin.text = "Login"
+            btnLogin.text = "LOGIN"
             btnLogin.setOnClickListener {
                 startActivity(Intent(context, LoginActivity::class.java))
             }
             txtBlacklist.text = "Log in to view your blacklist."
             btnEditBlacklist.visibility = View.GONE
-            layoutWebsiteDesign.visibility = View.GONE
+            switchLayout.visibility = View.GONE
+            txtLayoutStatus.visibility = View.GONE
         }
     }
     
     private fun setupDesignSwitch(view: View) {
-        val switchSearchDesign = view.findViewById<Switch>(R.id.switchSearchDesign)
-        val txtSearchDesignState = view.findViewById<TextView>(R.id.txtSearchDesignState)
+        val switchSearchDesign = view.findViewById<Switch>(R.id.switchLayout)
+        val txtSearchDesignState = view.findViewById<TextView>(R.id.txtLayoutStatus)
         
         // Initialize state
         switchSearchDesign.isChecked = searchDesign != "thumbnail"
@@ -265,9 +264,9 @@ class SettingsFragment : Fragment() {
                         txtBlacklist.text = currentBlacklist.joinToString(", ")
                     }
                     
-                    val switchSearchDesign = view.findViewById<Switch>(R.id.switchSearchDesign)
+                    val switchSearchDesign = view.findViewById<Switch>(R.id.switchLayout)
                     switchSearchDesign.isChecked = searchDesign != "thumbnail"
-                    view.findViewById<TextView>(R.id.txtSearchDesignState).text = if(switchSearchDesign.isChecked) "Poster" else "Thumbnail"
+                    view.findViewById<TextView>(R.id.txtLayoutStatus).text = if(switchSearchDesign.isChecked) "Poster" else "Thumbnail"
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {

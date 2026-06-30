@@ -118,9 +118,17 @@ class SearchFragment : Fragment() {
         sortAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerSort.adapter = sortAdapter
 
-        val btnGenres: Button = view.findViewById(R.id.btnGenres)
-        val btnBlacklist: Button = view.findViewById(R.id.btnBlacklist)
-        val btnStudios: Button = view.findViewById(R.id.btnStudios)
+        val btnGenres: androidx.cardview.widget.CardView = view.findViewById(R.id.btnGenres)
+        val btnBlacklist: androidx.cardview.widget.CardView = view.findViewById(R.id.btnBlacklist)
+        val btnStudios: androidx.cardview.widget.CardView = view.findViewById(R.id.btnStudios)
+        
+        val txtGenresSubtitle: android.widget.TextView = view.findViewById(R.id.txtGenresSubtitle)
+        val txtBlacklistSubtitle: android.widget.TextView = view.findViewById(R.id.txtBlacklistSubtitle)
+        val txtStudiosSubtitle: android.widget.TextView = view.findViewById(R.id.txtStudiosSubtitle)
+        
+        val btnToggleLayout: androidx.cardview.widget.CardView = view.findViewById(R.id.btnToggleLayout)
+        val txtToggleLayout: android.widget.TextView = view.findViewById(R.id.txtToggleLayout)
+        
         val btnApplyFilters: Button = view.findViewById(R.id.btnApplyFilters)
         val editSearch: EditText = view.findViewById(R.id.editSearch)
         
@@ -138,15 +146,26 @@ class SearchFragment : Fragment() {
         recyclerView.adapter = adapter
 
         btnGenres.setOnClickListener {
-            showFilterDialog("Genres", selectedGenres)
+            showFilterDialog("Genres", selectedGenres, txtGenresSubtitle, "Genres Selected")
         }
 
         btnBlacklist.setOnClickListener {
-            showFilterDialog("Blacklist", selectedBlacklist)
+            showFilterDialog("Blacklist", selectedBlacklist, txtBlacklistSubtitle, "Items Selected")
         }
 
         btnStudios.setOnClickListener {
-            showMultiSelectDialog("Studios", studiosList.map { it.first }.toTypedArray(), selectedStudios)
+            showMultiSelectDialog("Studios", studiosList.map { it.first }.toTypedArray(), selectedStudios, txtStudiosSubtitle)
+        }
+        
+        var isPosterLayout = searchDesign != "thumbnail"
+        txtToggleLayout.text = if (isPosterLayout) "Poster" else "Thumbnail"
+        
+        btnToggleLayout.setOnClickListener {
+            isPosterLayout = !isPosterLayout
+            val design = if (isPosterLayout) "cover" else "thumbnail"
+            prefs.edit().putString("searchDesign", design).apply()
+            txtToggleLayout.text = if (isPosterLayout) "Poster" else "Thumbnail"
+            recyclerView.layoutManager = GridLayoutManager(context, if (isPosterLayout) 2 else 1)
         }
 
         btnApplyFilters.setOnClickListener {
@@ -177,7 +196,7 @@ class SearchFragment : Fragment() {
         return view
     }
 
-    private fun showFilterDialog(title: String, checkedItemsArray: BooleanArray) {
+    private fun showFilterDialog(title: String, checkedItemsArray: BooleanArray, subtitleView: android.widget.TextView, suffix: String) {
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_filter, null)
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogView)
@@ -258,9 +277,12 @@ class SearchFragment : Fragment() {
         }
 
         dialogView.findViewById<Button>(R.id.btnDialogSave).setOnClickListener {
+            var count = 0
             allChips.forEach { (index, chip) ->
                 checkedItemsArray[index] = chip.isSelected
+                if (chip.isSelected) count++
             }
+            subtitleView.text = "$count $suffix"
             dialog.dismiss()
         }
 
@@ -268,17 +290,21 @@ class SearchFragment : Fragment() {
         dialog.show()
     }
 
-    private fun showMultiSelectDialog(title: String, items: Array<String>, checkedItems: BooleanArray) {
+    private fun showMultiSelectDialog(title: String, items: Array<String>, checkedItems: BooleanArray, subtitleView: android.widget.TextView) {
         val builder = AlertDialog.Builder(requireContext())
         builder.setTitle(title)
         builder.setMultiChoiceItems(items, checkedItems) { _, which, isChecked ->
             checkedItems[which] = isChecked
         }
-        builder.setPositiveButton("OK", null)
+        builder.setPositiveButton("OK") { _, _ -> 
+            val count = checkedItems.count { it }
+            subtitleView.text = "$count Studios Selected"
+        }
         builder.setNeutralButton("Clear") { _, _ ->
             for (i in checkedItems.indices) {
                 checkedItems[i] = false
             }
+            subtitleView.text = "0 Studios Selected"
         }
         builder.show()
     }
