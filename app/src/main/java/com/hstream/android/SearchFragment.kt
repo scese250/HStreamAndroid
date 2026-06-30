@@ -131,18 +131,6 @@ class SearchFragment : Fragment() {
         val editSearch: EditText = view.findViewById(R.id.editSearch)
         
         var isSpinnerInitialized = false
-        spinnerSort.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (isSpinnerInitialized) {
-                    currentPage = 1
-                    adapter.clearItems()
-                    performSearch(editSearch.text.toString(), position)
-                } else {
-                    isSpinnerInitialized = true
-                }
-            }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-        }
 
         val btnGenres: androidx.cardview.widget.CardView = view.findViewById(R.id.btnGenres)
         val btnBlacklist: androidx.cardview.widget.CardView = view.findViewById(R.id.btnBlacklist)
@@ -509,14 +497,14 @@ class SearchFragment : Fragment() {
         val orderParams = listOf(
             "recently-uploaded",
             "recently-released",
-            "title-sort-asc",
-            "title-sort-desc",
-            "oldest-uploaded",
-            "oldest-released",
-            "most-viewed"
+            "az",
+            "za",
+            "oldest-uploads",
+            "oldest-releases",
+            "view-count"
         )
         val order = if (sortIndex in orderParams.indices) orderParams[sortIndex] else "recently-released"
-        params.add("order=$order")
+        params.add("sort=$order")
         
         val viewParam = if (isPosterLayout) "poster" else "thumbnail"
         params.add("view=$viewParam")
