@@ -136,9 +136,6 @@ class SearchFragment : Fragment() {
         val txtBlacklistSubtitle: android.widget.TextView = view.findViewById(R.id.txtBlacklistSubtitle)
         val txtStudiosSubtitle: android.widget.TextView = view.findViewById(R.id.txtStudiosSubtitle)
         
-        val btnToggleLayout: androidx.cardview.widget.CardView = view.findViewById(R.id.btnToggleLayout)
-        val txtToggleLayout: android.widget.TextView = view.findViewById(R.id.txtToggleLayout)
-        
         val btnApplyFilters: Button = view.findViewById(R.id.btnApplyFilters)
         val editSearch: EditText = view.findViewById(R.id.editSearch)
         
@@ -197,19 +194,7 @@ class SearchFragment : Fragment() {
         }
         
         isPosterLayout = searchDesign != "thumbnail"
-        txtToggleLayout.text = if (isPosterLayout) "Poster" else "Thumbnail"
         
-        btnToggleLayout.setOnClickListener {
-            isPosterLayout = !isPosterLayout
-            txtToggleLayout.text = if (isPosterLayout) "Poster" else "Thumbnail"
-            recyclerView.layoutManager = GridLayoutManager(context, if (isPosterLayout) 2 else 1)
-            
-            // Reload the search results so the server returns the correct view format
-            currentPage = 1
-            adapter.clearItems()
-            performSearch(editSearch.text.toString(), spinnerSort.selectedItemPosition)
-        }
-
         btnApplyFilters.setOnClickListener {
             filterContainer.visibility = View.GONE
             currentPage = 1

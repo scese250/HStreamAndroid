@@ -204,10 +204,8 @@
         android:layout_marginBottom="8dp">
 
         <androidx.cardview.widget.CardView
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="4dp"
             app:cardBackgroundColor="#2D2D2D"
             app:cardCornerRadius="6dp">
 
@@ -229,37 +227,6 @@
                     android:layout_height="match_parent"
                     android:spinnerMode="dropdown"
                     android:background="@null" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <androidx.cardview.widget.CardView
-            android:id="@+id/btnToggleLayout"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            app:cardBackgroundColor="#2D2D2D"
-            app:cardCornerRadius="6dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="horizontal"
-                android:gravity="center">
-
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:src="@android:drawable/ic_menu_agenda"
-                    app:tint="#A0A0A0"
-                    android:layout_marginEnd="8dp"/>
-                <TextView
-                    android:id="@+id/txtToggleLayout"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Poster"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
     </LinearLayout>
