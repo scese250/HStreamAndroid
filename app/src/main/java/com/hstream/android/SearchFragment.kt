@@ -470,7 +470,12 @@ class SearchFragment : Fragment() {
         )
         val order = if (sortIndex in orderParams.indices) orderParams[sortIndex] else "recently-released"
         params.add("order=$order")
-        params.add("view=poster")
+        
+        val prefs = requireActivity().getSharedPreferences("HStreamPrefs", android.content.Context.MODE_PRIVATE)
+        val searchDesign = prefs.getString("searchDesign", "poster")
+        val viewParam = if (searchDesign == "thumbnail") "thumbnail" else "poster"
+        params.add("view=$viewParam")
+        
         params.add("page=$page")
 
         return baseUrl + params.joinToString("&")

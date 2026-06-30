@@ -161,7 +161,7 @@ class SettingsFragment : Fragment() {
         txtSearchDesignState.text = if (switchSearchDesign.isChecked) "Poster" else "Thumbnail"
         
         switchSearchDesign.setOnCheckedChangeListener { _, isChecked ->
-            val newValue = if (isChecked) "cover" else "thumbnail"
+            val newValue = if (isChecked) "poster" else "thumbnail"
             txtSearchDesignState.text = if (isChecked) "Poster" else "Thumbnail"
             
             searchDesign = newValue
