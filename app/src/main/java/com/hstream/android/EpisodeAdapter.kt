@@ -11,7 +11,7 @@ import coil.request.CachePolicy
 
 class EpisodeAdapter(
     private val items: MutableList<VideoItem>,
-    private val onItemClick: (String) -> Unit
+    private val onItemClick: (VideoItem) -> Unit
 ) : RecyclerView.Adapter<EpisodeAdapter.ViewHolder>() {
 
     fun getItems(): List<VideoItem> = items
@@ -38,7 +38,7 @@ class EpisodeAdapter(
         }
         
         holder.itemView.setOnClickListener {
-            onItemClick(item.url)
+            onItemClick(item)
         }
     }
 

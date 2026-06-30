@@ -11,7 +11,7 @@ import coil.request.CachePolicy
 
 class VideoAdapter(
     private val items: MutableList<VideoItem>,
-    private val onItemClick: (String) -> Unit
+    private val onItemClick: (VideoItem) -> Unit
 ) : RecyclerView.Adapter<VideoAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -47,7 +47,7 @@ class VideoAdapter(
         }
         
         holder.itemView.setOnClickListener {
-            onItemClick(item.url)
+            onItemClick(item)
         }
     }
 

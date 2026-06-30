@@ -156,8 +156,8 @@ class SearchFragment : Fragment() {
         progressBar = view.findViewById(R.id.progressSearch)
         val recyclerView: RecyclerView = view.findViewById(R.id.recyclerSearch)
 
-        adapter = VideoAdapter(mutableListOf()) { url ->
-            (requireActivity() as MainActivity).handleVideoClick(url)
+        adapter = VideoAdapter(mutableListOf()) { item ->
+            (requireActivity() as MainActivity).handleVideoClick(item)
         }
 
         val prefs = requireActivity().getSharedPreferences("HStreamPrefs", android.content.Context.MODE_PRIVATE)

@@ -111,6 +111,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_home -> replaceFragment(HomeFragment(), "Home")
                 R.id.nav_search -> replaceFragment(SearchFragment(), "Search")
                 R.id.nav_favs -> replaceFragment(FavsFragment(), "Favorites")
+                R.id.nav_history -> replaceFragment(HistoryFragment(), "History")
                 R.id.nav_settings -> replaceFragment(SettingsFragment(), "Settings")
             }
             drawerLayout.closeDrawers()
@@ -188,7 +189,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun handleVideoClick(url: String, onRemoveFav: (() -> Unit)? = null) {
+    fun handleVideoClick(item: VideoItem, onRemoveFav: (() -> Unit)? = null, onRemoveHistory: (() -> Unit)? = null) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_video_options, null)
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
@@ -196,12 +197,12 @@ class MainActivity : AppCompatActivity() {
 
         dialogView.findViewById<android.widget.Button>(R.id.btnWatchEpisode).setOnClickListener {
             dialog.dismiss()
-            playVideo(url)
+            playVideo(item)
         }
 
         dialogView.findViewById<android.widget.Button>(R.id.btnViewSeries).setOnClickListener {
             dialog.dismiss()
-            openSeriesFragment(url)
+            openSeriesFragment(item.url)
         }
         
         val btnRemoveFav = dialogView.findViewById<android.widget.Button>(R.id.btnRemoveFav)
@@ -210,6 +211,15 @@ class MainActivity : AppCompatActivity() {
             btnRemoveFav.setOnClickListener {
                 dialog.dismiss()
                 onRemoveFav()
+            }
+        }
+
+        val btnRemoveHistory = dialogView.findViewById<android.widget.Button>(R.id.btnRemoveHistory)
+        if (onRemoveHistory != null) {
+            btnRemoveHistory.visibility = android.view.View.VISIBLE
+            btnRemoveHistory.setOnClickListener {
+                dialog.dismiss()
+                onRemoveHistory()
             }
         }
 
@@ -228,7 +238,9 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.title = "Serie"
     }
 
-    fun playVideo(url: String) {
+    fun playVideo(item: VideoItem) {
+        HistoryManager.addHistory(this, item)
+        val url = item.url
         Toast.makeText(this, "Obteniendo stream...", Toast.LENGTH_SHORT).show()
         
         CoroutineScope(Dispatchers.IO).launch {

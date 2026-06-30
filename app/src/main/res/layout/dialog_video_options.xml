@@ -48,6 +48,18 @@
         android:textColor="#121212"
         android:textStyle="bold"
         android:visibility="gone"
+        android:layout_marginBottom="12dp"
+        app:cornerRadius="8dp" />
+
+    <Button
+        android:id="@+id/btnRemoveHistory"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="REMOVE FROM HISTORY"
+        android:backgroundTint="#CF6679"
+        android:textColor="#121212"
+        android:textStyle="bold"
+        android:visibility="gone"
         app:cornerRadius="8dp" />
 
 </LinearLayout>
