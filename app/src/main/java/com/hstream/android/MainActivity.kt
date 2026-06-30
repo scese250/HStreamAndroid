@@ -163,15 +163,12 @@ class MainActivity : AppCompatActivity() {
                 val html = resp.body?.string() ?: ""
                 val doc = org.jsoup.Jsoup.parse(html)
                 
-                var nameInput = doc.select(".dropdown-header").text().trim()
-                if (nameInput.isEmpty()) nameInput = doc.select("input[name=name], input[name=username]").attr("value")
-                if (nameInput.isEmpty()) nameInput = doc.select(".user-name").text().trim()
-                val finalName = if(nameInput.isNotEmpty()) nameInput else "User"
+                val avatarImg = doc.select("button img.rounded-full").first()
+                var nameInput = avatarImg?.attr("alt")?.trim() ?: ""
+                val finalName = if(nameInput.isNotEmpty() && !nameInput.equals("Guest", true)) nameInput else "User"
                 
-                var avatarSrc = doc.select(".user-avatar").attr("src")
-                if (avatarSrc.isEmpty()) avatarSrc = doc.select(".user-avatar img").attr("src")
-                if (avatarSrc.isEmpty()) avatarSrc = doc.select("img.rounded-circle").attr("src")
-                if (avatarSrc.isEmpty()) avatarSrc = doc.select("img[alt*=avatar]").attr("src")
+                var avatarSrc = avatarImg?.attr("src") ?: ""
+                if (avatarSrc.startsWith("/")) avatarSrc = "https://hstream.moe$avatarSrc"
                 
                 withContext(Dispatchers.Main) {
                     usernameText.text = finalName

@@ -5,6 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#121212"
+    android:animateLayoutChanges="true"
     android:padding="16dp">
 
     <FrameLayout
@@ -221,13 +222,11 @@
                     android:src="@android:drawable/ic_menu_sort_by_size"
                     app:tint="#8093F1"
                     android:layout_marginEnd="8dp"/>
-                <Spinner
+                <androidx.appcompat.widget.AppCompatSpinner
                     android:id="@+id/spinnerSort"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:spinnerMode="dropdown"
-                    android:dropDownVerticalOffset="48dp"
-                    android:overlapAnchor="false"
                     android:background="@null" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
