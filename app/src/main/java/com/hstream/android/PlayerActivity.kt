@@ -270,7 +270,6 @@ class PlayerActivity : AppCompatActivity() {
         currentEpisodeUrl = item.url
         txtTitle.text = item.title
 
-        updateNextEpisodeButton()
         episodeListAdapter?.setCurrentIndex(newIndex)
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -357,7 +356,7 @@ class PlayerActivity : AppCompatActivity() {
     // --- Controles ---
 
     private fun setupControls() {
-        updateNextEpisodeButton()
+
 
         playerView.setOnClickListener { toggleControls() }
         controlsOverlay.setOnClickListener { toggleControls() }
@@ -586,7 +585,7 @@ class PlayerActivity : AppCompatActivity() {
                         loadEpisode(item, index)
                     }
                     recyclerEpisodes.adapter = episodeListAdapter
-                    updateNextEpisodeButton()
+
                 }
             } catch (e: Exception) { /* silencioso */ }
         }
