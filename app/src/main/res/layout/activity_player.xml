@@ -13,20 +13,27 @@
         app:use_controller="false"
         app:surface_type="surface_view" />
 
-    <!-- Zona doble tap izquierda (retroceder) -->
-    <View
-        android:id="@+id/zoneTapLeft"
-        android:layout_width="50%p"
+    <!-- Zonas de doble tap: izquierda (retroceder) y derecha (adelantar) -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/transparent" />
+        android:orientation="horizontal">
 
-    <!-- Zona doble tap derecha (adelantar) -->
-    <View
-        android:id="@+id/zoneTapRight"
-        android:layout_width="50%p"
-        android:layout_height="match_parent"
-        android:layout_gravity="end"
-        android:background="@android:color/transparent" />
+        <View
+            android:id="@+id/zoneTapLeft"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent" />
+
+        <View
+            android:id="@+id/zoneTapRight"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent" />
+
+    </LinearLayout>
 
     <!-- Feedback visual doble tap -->
     <TextView
