@@ -89,6 +89,7 @@ class PlayerActivity : AppCompatActivity() {
     private var isPanelOpen = false
     private var isSeekBarTracking = false
     private var episodeListAdapter: EpisodeListAdapter? = null
+    private lateinit var panelScrim: View
 
     // --- Lifecycle ---
 
@@ -112,6 +113,8 @@ class PlayerActivity : AppCompatActivity() {
         btnBack         = findViewById(R.id.btnPlayerBack)
         btnSeekConfig   = findViewById(R.id.btnSeekConfig)
         panelEpisodes   = findViewById(R.id.panelEpisodes)
+        panelScrim      = findViewById(R.id.panelScrim)
+        panelScrim.setOnClickListener { if (isPanelOpen) togglePanel() }
         recyclerEpisodes = findViewById(R.id.recyclerEpisodes)
         loadingBar      = findViewById(R.id.playerLoadingBar)
         txtSeekFeedback = findViewById(R.id.txtSeekFeedback)
@@ -134,6 +137,10 @@ class PlayerActivity : AppCompatActivity() {
 
         initPlayer(mpdUrl, subtitleUrl, referer)
         checkSavedPosition()
+
+        if (episodeList.isEmpty() && currentEpisodeUrl.isNotEmpty()) {
+            fetchEpisodeListForUrl(currentEpisodeUrl)
+        }
     }
 
     override fun onPause() {
@@ -515,8 +522,62 @@ class PlayerActivity : AppCompatActivity() {
         isPanelOpen = !isPanelOpen
         val targetX = if (isPanelOpen) 0f else 280f * resources.displayMetrics.density
         panelEpisodes.animate().translationX(targetX).setDuration(250).start()
+        panelScrim.visibility = if (isPanelOpen) View.VISIBLE else View.GONE
         if (isPanelOpen) handler.removeCallbacks(hideControlsRunnable)
         else resetHideTimer()
+    }
+
+    private fun fetchEpisodeListForUrl(episodeUrl: String) {
+        val client = sharedClient ?: return
+        // Derivar la URL base de serie quitando el sufijo "-numero" final
+        val seriesUrl = episodeUrl.replace(Regex("-\\d+$"), "")
+        if (seriesUrl == episodeUrl) return // no habia numero al final
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val req = okhttp3.Request.Builder()
+                    .url(seriesUrl)
+                    .header("User-Agent", "Mozilla/5.0")
+                    .build()
+                val html = client.newCall(req).execute().body?.string() ?: return@launch
+                val doc = org.jsoup.Jsoup.parse(html)
+
+                val episodeRegex = Regex("^${Regex.escape(seriesUrl)}-\\d+$")
+                val newItems = mutableListOf<VideoItem>()
+                val seen = mutableSetOf<String>()
+
+                for (link in doc.select("a[href^=/hentai/], a[href^=https://hstream.moe/hentai/]")) {
+                    var url = link.attr("href")
+                    if (url.startsWith("/")) url = "https://hstream.moe$url"
+                    if (seen.contains(url) || !url.matches(episodeRegex)) continue
+                    seen.add(url)
+
+                    val img = link.selectFirst("img") ?: continue
+                    var poster = img.attr("data-src").ifEmpty { img.attr("src") }
+                    if (poster.isEmpty()) continue
+                    if (poster.startsWith("/")) poster = "https://hstream.moe$poster"
+
+                    val title = link.selectFirst("p")?.text() ?: img.attr("alt").ifEmpty { "Capitulo" }
+                    newItems.add(VideoItem(url, title, poster))
+                }
+
+                if (newItems.isEmpty()) return@launch
+
+                // Detectar el indice del episodio actual
+                val newIndex = newItems.indexOfFirst { it.url == episodeUrl }
+
+                withContext(Dispatchers.Main) {
+                    episodeList = newItems
+                    currentIndex = if (newIndex >= 0) newIndex else 0
+                    episodeListAdapter = EpisodeListAdapter(episodeList, currentIndex) { item, index ->
+                        togglePanel()
+                        loadEpisode(item, index)
+                    }
+                    recyclerEpisodes.adapter = episodeListAdapter
+                    updateNextEpisodeButton()
+                }
+            } catch (e: Exception) { /* silencioso */ }
+        }
     }
 
     // --- Posicion guardada ---

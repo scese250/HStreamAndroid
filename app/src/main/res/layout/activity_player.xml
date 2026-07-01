@@ -184,6 +184,14 @@
         </LinearLayout>
     </FrameLayout>
 
+    <!-- Scrim: cubre la pantalla fuera del panel cuando este esta abierto -->
+    <View
+        android:id="@+id/panelScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:visibility="gone" />
+
     <!-- Panel lateral de capitulos -->
     <LinearLayout
         android:id="@+id/panelEpisodes"
