@@ -64,7 +64,6 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var txtCurrent: TextView
     private lateinit var txtTotal: TextView
     private lateinit var txtTitle: TextView
-    private lateinit var btnNextEp: ImageButton
     private lateinit var btnEpList: ImageButton
     private lateinit var btnBack: ImageButton
     private lateinit var btnSeekConfig: ImageButton
@@ -108,7 +107,6 @@ class PlayerActivity : AppCompatActivity() {
         txtCurrent      = findViewById(R.id.txtCurrentTime)
         txtTotal        = findViewById(R.id.txtTotalTime)
         txtTitle        = findViewById(R.id.txtPlayerTitle)
-        btnNextEp       = findViewById(R.id.btnNextEpisode)
         btnEpList       = findViewById(R.id.btnEpisodeList)
         btnBack         = findViewById(R.id.btnPlayerBack)
         btnSeekConfig   = findViewById(R.id.btnSeekConfig)
@@ -180,6 +178,18 @@ class PlayerActivity : AppCompatActivity() {
         val newPlayer = ExoPlayer.Builder(this).build()
         player = newPlayer
         playerView.player = newPlayer
+
+        // Quitar fondo negro de los subtitulos
+        playerView.subtitleView?.setStyle(
+            androidx.media3.ui.CaptionStyleCompat(
+                android.graphics.Color.WHITE,
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT,
+                androidx.media3.ui.CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
+                android.graphics.Color.BLACK,
+                null
+            )
+        )
 
         if (subtitleUrl.isNotEmpty()) {
             loadingBar.visibility = View.VISIBLE
@@ -372,12 +382,6 @@ class PlayerActivity : AppCompatActivity() {
             }
         })
 
-        btnNextEp.setOnClickListener {
-            if (currentIndex < episodeList.size - 1) {
-                loadEpisode(episodeList[currentIndex + 1], currentIndex + 1)
-            }
-        }
-
         btnEpList.setOnClickListener { togglePanel() }
         findViewById<android.widget.ImageButton>(R.id.btnClosePanel).setOnClickListener { if (isPanelOpen) togglePanel() }
 
@@ -398,7 +402,9 @@ class PlayerActivity : AppCompatActivity() {
             }
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, vX: Float, vY: Float): Boolean {
                 if (Math.abs(vX) > Math.abs(vY) * 1.5f) {
-                    seekRelative(if (vX > 0) getSeekSeconds() else -getSeekSeconds())
+                    val p = player
+                    if (p != null && !p.isPlaying && vX > 0 && !isPanelOpen) togglePanel()
+                    else seekRelative(if (vX > 0) getSeekSeconds() else -getSeekSeconds())
                     return true
                 }
                 return false
@@ -415,7 +421,9 @@ class PlayerActivity : AppCompatActivity() {
             }
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, vX: Float, vY: Float): Boolean {
                 if (Math.abs(vX) > Math.abs(vY) * 1.5f) {
-                    seekRelative(if (vX > 0) getSeekSeconds() else -getSeekSeconds())
+                    val p = player
+                    if (p != null && !p.isPlaying && vX > 0 && !isPanelOpen) togglePanel()
+                    else seekRelative(if (vX > 0) getSeekSeconds() else -getSeekSeconds())
                     return true
                 }
                 return false
@@ -448,13 +456,13 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showSeekConfigDialog() {
-        val options = arrayOf("5 segundos", "10 segundos", "15 segundos", "30 segundos")
+        val options = arrayOf("5 seconds", "10 seconds", "15 seconds", "30 seconds")
         val values  = intArrayOf(5, 10, 15, 30)
         val current = getSeekSeconds()
         val selectedIndex = values.indexOfFirst { it == current }.coerceAtLeast(0)
 
-        AlertDialog.Builder(this)
-            .setTitle("Tiempo de avance/retroceso")
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Skip Duration")
             .setSingleChoiceItems(options, selectedIndex) { dialog, which ->
                 getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
                     .edit().putInt("seek_seconds", values[which]).apply()
@@ -474,12 +482,18 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showControls() {
+        controlsOverlay.animate().cancel()
         controlsOverlay.visibility = View.VISIBLE
+        controlsOverlay.animate().alpha(1f).setDuration(200).start()
         resetHideTimer()
     }
 
     private fun hideControls() {
-        if (!isSeekBarTracking && !isPanelOpen) controlsOverlay.visibility = View.GONE
+        if (!isSeekBarTracking && !isPanelOpen) {
+            controlsOverlay.animate().alpha(0f).setDuration(300).withEndAction {
+                if (!isSeekBarTracking && !isPanelOpen) controlsOverlay.visibility = View.GONE
+            }.start()
+        }
     }
 
     private fun resetHideTimer() {
@@ -503,9 +517,7 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateNextEpisodeButton() {
-        btnNextEp.visibility = if (currentIndex < episodeList.size - 1) View.VISIBLE else View.GONE
-    }
+
 
     // --- Panel de episodios ---
 

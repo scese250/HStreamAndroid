@@ -97,17 +97,6 @@
                 android:contentDescription="Seek config" />
         </LinearLayout>
 
-        <!-- Centro: play/pause -->
-        <ImageButton
-            android:id="@+id/btnPlayPause"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_gravity="center"
-            android:src="@android:drawable/ic_media_pause"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#FFFFFF"
-            android:contentDescription="Play/Pause" />
-
         <!-- Bottom: seekbar + tiempo + botones -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -124,7 +113,7 @@
                 android:progressTint="#BB86FC"
                 android:thumbTint="#BB86FC" />
 
-            <!-- Tiempo + botones de accion -->
+            <!-- Tiempo + play/pause centrado + boton lista -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -160,16 +149,20 @@
                     android:layout_height="0dp"
                     android:layout_weight="1" />
 
-                <!-- Boton siguiente capitulo -->
+                <!-- Play/Pause centrado en la barra -->
                 <ImageButton
-                    android:id="@+id/btnNextEpisode"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:src="@android:drawable/ic_media_next"
+                    android:id="@+id/btnPlayPause"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_media_pause"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:tint="#FFFFFF"
-                    android:contentDescription="Next episode"
-                    android:visibility="gone" />
+                    android:contentDescription="Play/Pause" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
 
                 <!-- Boton lista de capitulos -->
                 <ImageButton
