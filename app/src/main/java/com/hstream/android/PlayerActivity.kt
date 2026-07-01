@@ -178,18 +178,22 @@ class PlayerActivity : AppCompatActivity() {
             loadingBar.visibility = View.VISIBLE
             CoroutineScope(Dispatchers.IO).launch {
                 val srtContent = downloadAndConvertSubtitle(subtitleUrl, client)
+                var tempFile: java.io.File? = null
+                if (srtContent.isNotEmpty()) {
+                    tempFile = java.io.File(cacheDir, "sub_${currentEpisodeUrl.hashCode()}.srt")
+                    tempFile.writeText(srtContent)
+                }
                 withContext(Dispatchers.Main) {
                     loadingBar.visibility = View.GONE
-                    if (srtContent.isNotEmpty()) {
-                        val srtBytes = srtContent.toByteArray(Charsets.UTF_8)
-                        val srtUri = android.net.Uri.parse("data:text/x-subrip;base64," +
-                            android.util.Base64.encodeToString(srtBytes, android.util.Base64.NO_WRAP))
+                    if (tempFile != null) {
+                        val srtUri = android.net.Uri.fromFile(tempFile)
+                        val subDataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(this@PlayerActivity)
                         val subItem = MediaItem.SubtitleConfiguration.Builder(srtUri)
                             .setMimeType(MimeTypes.APPLICATION_SUBRIP)
                             .setLanguage("ja")
                             .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
                             .build()
-                        val subSource = SingleSampleMediaSource.Factory(dataSourceFactory)
+                        val subSource = SingleSampleMediaSource.Factory(subDataSourceFactory)
                             .createMediaSource(subItem, C.TIME_UNSET)
                         newPlayer.setMediaSource(MergingMediaSource(dashSource, subSource))
                     } else {
@@ -368,6 +372,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         btnEpList.setOnClickListener { togglePanel() }
+        findViewById<android.widget.ImageButton>(R.id.btnClosePanel).setOnClickListener { if (isPanelOpen) togglePanel() }
 
         btnSeekConfig.setOnClickListener { showSeekConfigDialog() }
     }
@@ -384,6 +389,13 @@ class PlayerActivity : AppCompatActivity() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                 toggleControls(); return true
             }
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, vX: Float, vY: Float): Boolean {
+                if (Math.abs(vX) > Math.abs(vY) * 1.5f) {
+                    seekRelative(if (vX > 0) getSeekSeconds() else -getSeekSeconds())
+                    return true
+                }
+                return false
+            }
         })
 
         val gestureRight = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
@@ -393,6 +405,13 @@ class PlayerActivity : AppCompatActivity() {
             }
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                 toggleControls(); return true
+            }
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, vX: Float, vY: Float): Boolean {
+                if (Math.abs(vX) > Math.abs(vY) * 1.5f) {
+                    seekRelative(if (vX > 0) getSeekSeconds() else -getSeekSeconds())
+                    return true
+                }
+                return false
             }
         })
 
@@ -439,6 +458,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun toggleControls() {
+        if (isPanelOpen) {
+            togglePanel()
+            return
+        }
         if (controlsOverlay.visibility == View.VISIBLE) hideControls()
         else showControls()
     }

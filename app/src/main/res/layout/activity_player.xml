@@ -194,14 +194,31 @@
         android:background="#E6121212"
         android:translationX="280dp">
 
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Episodios"
-            android:textColor="#BB86FC"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:padding="16dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Episodios"
+                android:textColor="#BB86FC"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <ImageButton
+                android:id="@+id/btnClosePanel"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:tint="#AAAAAA"
+                android:contentDescription="Close panel" />
+        </LinearLayout>
 
         <View
             android:layout_width="match_parent"
