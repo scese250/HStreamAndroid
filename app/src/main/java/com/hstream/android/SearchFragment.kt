@@ -180,7 +180,9 @@ class SearchFragment : Fragment() {
                 txtStudiosSubtitle.text = "1 Studios Selected"
             }
         }
-        val layoutManager = GridLayoutManager(context, if (searchDesign == "thumbnail") 1 else 2)
+        val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        val baseSpanCount = if (searchDesign == "thumbnail") 1 else 2
+        val layoutManager = GridLayoutManager(context, if (isLandscape) baseSpanCount * 2 else baseSpanCount)
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = adapter
 

@@ -47,7 +47,9 @@ class FavsFragment : Fragment() {
                 removeFavorite(item.url)
             }
         }
-        recyclerViewFavs.layoutManager = GridLayoutManager(requireContext(), 2)
+        val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        val spanCount = if (isLandscape) 4 else 2
+        recyclerViewFavs.layoutManager = GridLayoutManager(requireContext(), spanCount)
         recyclerViewFavs.adapter = adapter
         
         btnFavsLogin.setOnClickListener {

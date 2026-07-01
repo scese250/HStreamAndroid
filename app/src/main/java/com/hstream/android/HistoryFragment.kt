@@ -31,7 +31,9 @@ class HistoryFragment : Fragment() {
                 onRemoveHistory = { removeHistory(item.url) }
             )
         }
-        recyclerViewHistory.layoutManager = GridLayoutManager(requireContext(), 1)
+        val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        val spanCount = if (isLandscape) 2 else 1
+        recyclerViewHistory.layoutManager = GridLayoutManager(requireContext(), spanCount)
         recyclerViewHistory.adapter = adapter
         
         loadHistory()

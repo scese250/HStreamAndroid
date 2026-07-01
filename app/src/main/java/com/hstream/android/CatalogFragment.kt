@@ -53,7 +53,9 @@ class CatalogFragment : Fragment() {
             (requireActivity() as MainActivity).handleVideoClick(url)
         }
 
-        val layoutManager = GridLayoutManager(context, 2)
+        val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        val spanCount = if (isLandscape) 4 else 2
+        val layoutManager = GridLayoutManager(context, spanCount)
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = adapter
 
