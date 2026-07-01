@@ -363,7 +363,20 @@ class PlayerActivity : AppCompatActivity() {
 
 
         playerView.setOnClickListener { toggleControls() }
-        controlsOverlay.setOnClickListener { toggleControls() }
+
+        // ponytail: GestureDetector en overlay para capturar fling-derecha incluso con controles visibles
+        val overlayGesture = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                toggleControls(); return true
+            }
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, vX: Float, vY: Float): Boolean {
+                if (Math.abs(vX) > Math.abs(vY) * 1.5f && vX > 0 && !isPanelOpen) {
+                    togglePanel(); return true
+                }
+                return false
+            }
+        })
+        controlsOverlay.setOnTouchListener { _, ev -> overlayGesture.onTouchEvent(ev); true }
 
         btnBack.setOnClickListener { finish() }
 

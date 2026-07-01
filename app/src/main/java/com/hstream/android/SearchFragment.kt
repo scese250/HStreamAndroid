@@ -143,7 +143,7 @@ class SearchFragment : Fragment() {
         val btnApplyFilters: Button = view.findViewById(R.id.btnApplyFilters)
         
         val btnToggleFilters: android.widget.ImageButton = view.findViewById(R.id.btnToggleFilters)
-        val filterContainer: android.widget.LinearLayout = view.findViewById(R.id.filterContainer)
+        val filterContainer: View = view.findViewById(R.id.filterContainer)
         
         btnToggleFilters.setOnClickListener {
             if (filterContainer.visibility == View.VISIBLE) {
