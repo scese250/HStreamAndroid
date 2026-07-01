@@ -113,13 +113,23 @@
                 android:progressTint="#BB86FC"
                 android:thumbTint="#BB86FC" />
 
-            <!-- Tiempo + play/pause centrado + boton lista -->
+            <!-- Play/Pause + tiempo + boton lista -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:layout_marginTop="4dp">
+
+                <!-- Play/Pause a la izquierda -->
+                <ImageButton
+                    android:id="@+id/btnPlayPause"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_media_pause"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:tint="#FFFFFF"
+                    android:contentDescription="Play/Pause" />
 
                 <TextView
                     android:id="@+id/txtCurrentTime"
@@ -149,21 +159,6 @@
                     android:layout_height="0dp"
                     android:layout_weight="1" />
 
-                <!-- Play/Pause centrado en la barra -->
-                <ImageButton
-                    android:id="@+id/btnPlayPause"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:src="@android:drawable/ic_media_pause"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:tint="#FFFFFF"
-                    android:contentDescription="Play/Pause" />
-
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="0dp"
-                    android:layout_weight="1" />
-
                 <!-- Boton lista de capitulos -->
                 <ImageButton
                     android:id="@+id/btnEpisodeList"
@@ -180,6 +175,14 @@
     <!-- Scrim: cubre la pantalla fuera del panel cuando este esta abierto -->
     <View
         android:id="@+id/panelScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:visibility="gone" />
+
+    <!-- Scrim: cubre la pantalla para cerrar el snackbar de Continuar -->
+    <View
+        android:id="@+id/snackbarScrim"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@android:color/transparent"

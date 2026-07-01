@@ -89,6 +89,8 @@ class PlayerActivity : AppCompatActivity() {
     private var isSeekBarTracking = false
     private var episodeListAdapter: EpisodeListAdapter? = null
     private lateinit var panelScrim: View
+    private lateinit var snackbarScrim: View
+    private var currentSnackbar: com.google.android.material.snackbar.Snackbar? = null
 
     // --- Lifecycle ---
 
@@ -113,6 +115,8 @@ class PlayerActivity : AppCompatActivity() {
         panelEpisodes   = findViewById(R.id.panelEpisodes)
         panelScrim      = findViewById(R.id.panelScrim)
         panelScrim.setOnClickListener { if (isPanelOpen) togglePanel() }
+        snackbarScrim   = findViewById(R.id.snackbarScrim)
+        snackbarScrim.setOnClickListener { dismissSnackbarScrim() }
         recyclerEpisodes = findViewById(R.id.recyclerEpisodes)
         loadingBar      = findViewById(R.id.playerLoadingBar)
         txtSeekFeedback = findViewById(R.id.txtSeekFeedback)
@@ -603,9 +607,24 @@ class PlayerActivity : AppCompatActivity() {
             )
             snackbar.setAction("Continuar") {
                 player?.seekTo(savedPos)
+                dismissSnackbarScrim()
             }
+            snackbar.addCallback(object : com.google.android.material.snackbar.Snackbar.Callback() {
+                override fun onDismissed(sb: com.google.android.material.snackbar.Snackbar, event: Int) {
+                    snackbarScrim.visibility = View.GONE
+                    currentSnackbar = null
+                }
+            })
+            currentSnackbar = snackbar
+            snackbarScrim.visibility = View.VISIBLE
             snackbar.show()
         }
+    }
+
+    private fun dismissSnackbarScrim() {
+        currentSnackbar?.dismiss()
+        currentSnackbar = null
+        snackbarScrim.visibility = View.GONE
     }
 
     private fun savePLayerPosition() {
