@@ -46,8 +46,8 @@ class SeriesFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_series, container, false)
         
         val recycler: RecyclerView = view.findViewById(R.id.recyclerSeriesEpisodes)
-        adapter = EpisodeAdapter(mutableListOf()) { item ->
-            (requireActivity() as MainActivity).playVideo(item)
+        adapter = EpisodeAdapter(mutableListOf()) { item, index ->
+            (requireActivity() as MainActivity).playVideo(item, adapter.getItems(), index)
         }
         recycler.layoutManager = LinearLayoutManager(requireContext())
         recycler.adapter = adapter

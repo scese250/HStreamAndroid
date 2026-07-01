@@ -238,7 +238,7 @@ class MainActivity : AppCompatActivity() {
         supportActionBar?.title = "Serie"
     }
 
-    fun playVideo(item: VideoItem) {
+    fun playVideo(item: VideoItem, episodeList: List<VideoItem> = emptyList(), currentIndex: Int = 0) {
         HistoryManager.addHistory(this, item)
         val url = item.url
         Toast.makeText(this, "Obteniendo stream...", Toast.LENGTH_SHORT).show()
@@ -320,35 +320,52 @@ class MainActivity : AppCompatActivity() {
                     subtitles.add(Uri.parse(subUrl))
                 }
                 
-                // 3. Lanzar intent
+                // 3. Lanzar reproductor
                 withContext(Dispatchers.Main) {
-                    val intent = Intent(Intent.ACTION_VIEW)
-                    intent.setDataAndType(Uri.parse(mpdUrl), "video/*")
-                    if (subtitles.isNotEmpty()) {
-                        intent.putExtra("subs", subtitles.toTypedArray())
-                    }
-                    
-                    val headers = Bundle()
-                    headers.putString("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-                    headers.putString("Referer", url)
-                    intent.putExtra("android.media.intent.extra.HTTP_HEADERS", headers)
-                    
                     val prefs = getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
-                    val defaultPlayer = prefs.getString("default_player", "")
-                    
-                    if (!defaultPlayer.isNullOrEmpty()) {
-                        intent.setPackage(defaultPlayer)
-                        try {
-                            startActivity(intent)
-                        } catch (e: Exception) {
-                            Toast.makeText(this@MainActivity, "Reproductor no instalado, abriendo selector", Toast.LENGTH_SHORT).show()
-                            intent.setPackage(null)
+                    val useExternal = prefs.getBoolean("use_external_player", false)
+
+                    if (!useExternal) {
+                        // Reproductor integrado
+                        PlayerActivity.sharedClient = client
+                        val intent = Intent(this@MainActivity, PlayerActivity::class.java).apply {
+                            putExtra(PlayerActivity.EXTRA_MPD_URL, mpdUrl)
+                            putExtra(PlayerActivity.EXTRA_EPISODE_URL, url)
+                            putExtra(PlayerActivity.EXTRA_EPISODE_TITLE, item.title)
+                            putExtra(PlayerActivity.EXTRA_SUBTITLE_URL, if (subtitles.isNotEmpty()) subtitles[0].toString() else "")
+                            putExtra(PlayerActivity.EXTRA_REFERER, url)
+                            putParcelableArrayListExtra(PlayerActivity.EXTRA_EPISODE_LIST, ArrayList(episodeList))
+                            putExtra(PlayerActivity.EXTRA_CURRENT_INDEX, currentIndex)
+                        }
+                        startActivity(intent)
+                    } else {
+                        // Reproductor externo
+                        val intent = Intent(Intent.ACTION_VIEW)
+                        intent.setDataAndType(Uri.parse(mpdUrl), "video/*")
+                        if (subtitles.isNotEmpty()) {
+                            intent.putExtra("subs", subtitles.toTypedArray())
+                        }
+                        val headers = Bundle()
+                        headers.putString("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                        headers.putString("Referer", url)
+                        intent.putExtra("android.media.intent.extra.HTTP_HEADERS", headers)
+
+                        val defaultPlayer = prefs.getString("default_player", "")
+                        if (!defaultPlayer.isNullOrEmpty()) {
+                            intent.setPackage(defaultPlayer)
+                            try {
+                                startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(this@MainActivity, "Reproductor no instalado, abriendo selector", Toast.LENGTH_SHORT).show()
+                                intent.setPackage(null)
+                                startActivity(Intent.createChooser(intent, "Selecciona reproductor"))
+                            }
+                        } else {
                             startActivity(Intent.createChooser(intent, "Selecciona reproductor"))
                         }
-                    } else {
-                        startActivity(Intent.createChooser(intent, "Selecciona reproductor"))
                     }
                 }
+
                 
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {

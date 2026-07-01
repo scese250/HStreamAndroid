@@ -77,6 +77,19 @@ class SettingsFragment : Fragment() {
         }
 
         val switchPrivacy: Switch = view.findViewById(R.id.switchPrivacy)
+        val switchExternal: Switch = view.findViewById(R.id.switchExternalPlayer)
+
+        val useExternal = prefs.getBoolean("use_external_player", false)
+        switchExternal.isChecked = useExternal
+        btnEditPlayer.isEnabled = useExternal
+        btnEditPlayer.alpha = if (useExternal) 1f else 0.4f
+
+        switchExternal.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("use_external_player", isChecked).apply()
+            btnEditPlayer.isEnabled = isChecked
+            btnEditPlayer.alpha = if (isChecked) 1f else 0.4f
+        }
+
         switchPrivacy.isChecked = prefs.getBoolean("privacy_lock", false)
         switchPrivacy.setOnCheckedChangeListener { _, isChecked ->
             prefs.edit().putBoolean("privacy_lock", isChecked).apply()
