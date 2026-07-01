@@ -32,8 +32,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -301,7 +303,7 @@ class PlayerActivity : AppCompatActivity() {
             .header("Referer", url)
             .header("X-Requested-With", "XMLHttpRequest")
             .header("X-Xsrf-Token", xsrfToken)
-            .post(jsonPayload.toRequestBody())
+            .post(jsonPayload.toRequestBody("application/json".toMediaType()))
             .build()
 
         val jsonResp = org.json.JSONObject(client.newCall(req2).execute().body?.string() ?: return null)
@@ -329,8 +331,7 @@ class PlayerActivity : AppCompatActivity() {
         return Pair(mpdUrl, subtitleUrl)
     }
 
-    private fun String.toRequestBody() =
-        okhttp3.RequestBody.create(okhttp3.MediaType.parse("application/json"), this)
+
 
     // --- Controles ---
 
