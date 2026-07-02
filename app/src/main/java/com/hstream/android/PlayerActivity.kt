@@ -410,7 +410,8 @@ class PlayerActivity : AppCompatActivity() {
 
         val gestureLeft = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
-                seekRelative(-getSeekSeconds())
+                val rightHand = getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).getBoolean("right_hand_fap", false)
+                seekRelative(if (rightHand) +getSeekSeconds() else -getSeekSeconds())
                 return true
             }
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
@@ -429,7 +430,8 @@ class PlayerActivity : AppCompatActivity() {
 
         val gestureRight = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
-                seekRelative(+getSeekSeconds())
+                val rightHand = getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).getBoolean("right_hand_fap", false)
+                seekRelative(if (rightHand) -getSeekSeconds() else +getSeekSeconds())
                 return true
             }
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
@@ -471,20 +473,173 @@ class PlayerActivity : AppCompatActivity() {
         return prefs.getInt("seek_seconds", 5)
     }
 
+    @Suppress("DEPRECATION")
     private fun showSeekConfigDialog() {
-        val options = arrayOf("5 seconds", "10 seconds", "15 seconds", "30 seconds")
+        val prefs   = getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
         val values  = intArrayOf(5, 10, 15, 30)
-        val current = getSeekSeconds()
-        val selectedIndex = values.indexOfFirst { it == current }.coerceAtLeast(0)
+        val labels  = arrayOf("5 seconds", "10 seconds", "15 seconds", "30 seconds")
+        var selSec  = getSeekSeconds()
+        val d       = resources.displayMetrics.density
+        fun dp(v: Int) = (v * d).toInt()
 
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle("Skip Duration")
-            .setSingleChoiceItems(options, selectedIndex) { dialog, which ->
-                getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE)
-                    .edit().putInt("seek_seconds", values[which]).apply()
-                dialog.dismiss()
+        // --- Root card ---
+        val card = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            background = android.graphics.drawable.GradientDrawable().also {
+                it.setColor(0xF2121212.toInt())
+                it.cornerRadius = dp(20).toFloat()
             }
-            .show()
+            elevation = dp(24).toFloat()
+        }
+
+        // --- Title ---
+        val titleRow = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(20), dp(20), dp(12))
+        }
+        titleRow.addView(View(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(dp(4), dp(22)).also { it.marginEnd = dp(10) }
+            background = android.graphics.drawable.GradientDrawable().also {
+                it.setColor(0xFFBB86FC.toInt())
+                it.cornerRadius = dp(2).toFloat()
+            }
+        })
+        titleRow.addView(android.widget.TextView(this).apply {
+            text = "Player Settings"
+            setTextColor(0xFFFFFFFF.toInt())
+            textSize = 17f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        })
+        card.addView(titleRow)
+
+        // Divider
+        fun addDivider(topMargin: Int = 0) = card.addView(View(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, dp(1)
+            ).also { it.marginStart = dp(20); it.marginEnd = dp(20); it.topMargin = dp(topMargin) }
+            setBackgroundColor(0xFF2E2E2E.toInt())
+        })
+        addDivider()
+
+        // --- Skip Duration label ---
+        card.addView(android.widget.TextView(this).apply {
+            text = "SKIP DURATION"
+            setTextColor(0xFFA0A0A0.toInt())
+            textSize = 10f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            setPadding(dp(20), dp(14), dp(20), dp(6))
+        })
+
+        // --- Option rows ---
+        val optRows = mutableListOf<android.widget.LinearLayout>()
+
+        fun refreshRows() {
+            optRows.forEachIndexed { i, row ->
+                val sel = values[i] == selSec
+                (row.background as android.graphics.drawable.GradientDrawable).setColor(
+                    if (sel) 0x22BB86FC else 0x00000000
+                )
+                (row.getChildAt(1) as android.widget.TextView).setTextColor(
+                    if (sel) 0xFFBB86FC.toInt() else 0xFFFFFFFF.toInt()
+                )
+                row.getChildAt(2).visibility = if (sel) View.VISIBLE else View.GONE
+            }
+        }
+
+        values.forEachIndexed { i, sec ->
+            val row = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(dp(20), dp(10), dp(20), dp(10))
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                ).also { it.marginStart = dp(8); it.marginEnd = dp(8) }
+                background = android.graphics.drawable.GradientDrawable().also {
+                    it.setColor(0x00000000)
+                    it.cornerRadius = dp(10).toFloat()
+                }
+            }
+            // Dot
+            row.addView(View(this).apply {
+                layoutParams = android.widget.LinearLayout.LayoutParams(dp(7), dp(7)).also { it.marginEnd = dp(14) }
+                background = android.graphics.drawable.GradientDrawable().also {
+                    it.shape = android.graphics.drawable.GradientDrawable.OVAL
+                    it.setColor(0xFFBB86FC.toInt())
+                }
+            })
+            // Label
+            row.addView(android.widget.TextView(this).apply {
+                text = labels[i]
+                textSize = 15f
+                layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            // Checkmark
+            row.addView(android.widget.TextView(this).apply {
+                text = "\u2713"
+                setTextColor(0xFFBB86FC.toInt())
+                textSize = 16f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            })
+            row.setOnClickListener {
+                selSec = sec
+                prefs.edit().putInt("seek_seconds", sec).apply()
+                refreshRows()
+            }
+            optRows.add(row)
+            card.addView(row)
+        }
+        refreshRows()
+
+        // --- Right hand fap divider + row ---
+        addDivider(topMargin = 6)
+
+        val fapRow = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dp(20), dp(16), dp(20), dp(20))
+        }
+        val fapTextCol = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            layoutParams = android.widget.LinearLayout.LayoutParams(0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        fapTextCol.addView(android.widget.TextView(this).apply {
+            text = "Right hand fap"
+            setTextColor(0xFFFFFFFF.toInt())
+            textSize = 14f
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        })
+        fapTextCol.addView(android.widget.TextView(this).apply {
+            text = "Left zone advances forward"
+            setTextColor(0xFF888888.toInt())
+            textSize = 12f
+        })
+        val fapSwitch = androidx.appcompat.widget.SwitchCompat(this).apply {
+            isChecked = prefs.getBoolean("right_hand_fap", false)
+            thumbTintList = android.content.res.ColorStateList.valueOf(0xFFBB86FC.toInt())
+            trackTintList = android.content.res.ColorStateList.valueOf(0xFF5A3A7A.toInt())
+        }
+        fapSwitch.setOnCheckedChangeListener { _, checked ->
+            prefs.edit().putBoolean("right_hand_fap", checked).apply()
+        }
+        fapRow.addView(fapTextCol)
+        fapRow.addView(fapSwitch)
+        card.addView(fapRow)
+
+        // --- Dialog window ---
+        val dialog = android.app.Dialog(this)
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setDimAmount(0.65f)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                val wa = attributes; wa.blurBehindRadius = 18; attributes = wa
+            }
+        }
+        dialog.setContentView(card)
+        dialog.window?.setLayout(dp(320), android.view.WindowManager.LayoutParams.WRAP_CONTENT)
+        dialog.show()
         resetHideTimer()
     }
 
