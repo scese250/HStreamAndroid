@@ -291,6 +291,7 @@ class PlayerActivity : AppCompatActivity() {
                         initPlayer(result.first, result.second, item.url)
                         checkSavedPosition()
                         checkLikedState(item.url)
+                        HistoryManager.addHistory(this@PlayerActivity, item)
                     } else {
                         Toast.makeText(this@PlayerActivity, "Error al cargar el episodio", Toast.LENGTH_SHORT).show()
                     }
