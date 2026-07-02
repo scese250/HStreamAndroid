@@ -241,7 +241,7 @@ class MainActivity : AppCompatActivity() {
     fun playVideo(item: VideoItem, episodeList: List<VideoItem> = emptyList(), currentIndex: Int = 0) {
         HistoryManager.addHistory(this, item)
         val url = item.url
-        Toast.makeText(this, "Loading episodes...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Loading episode...", Toast.LENGTH_SHORT).show()
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
