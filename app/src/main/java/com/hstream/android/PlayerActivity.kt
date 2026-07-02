@@ -91,6 +91,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var panelScrim: View
     private lateinit var snackbarScrim: View
     private var currentSnackbar: com.google.android.material.snackbar.Snackbar? = null
+    private lateinit var btnFavorite: ImageButton
+    private var isLiked = false
 
     // --- Lifecycle ---
 
@@ -112,6 +114,7 @@ class PlayerActivity : AppCompatActivity() {
         btnEpList       = findViewById(R.id.btnEpisodeList)
         btnBack         = findViewById(R.id.btnPlayerBack)
         btnSeekConfig   = findViewById(R.id.btnSeekConfig)
+        btnFavorite     = findViewById(R.id.btnFavorite)
         panelEpisodes   = findViewById(R.id.panelEpisodes)
         panelScrim      = findViewById(R.id.panelScrim)
         panelScrim.setOnClickListener { if (isPanelOpen) togglePanel() }
@@ -139,6 +142,7 @@ class PlayerActivity : AppCompatActivity() {
 
         initPlayer(mpdUrl, subtitleUrl, referer)
         checkSavedPosition()
+        checkLikedState(currentEpisodeUrl)
 
         if (episodeList.isEmpty() && currentEpisodeUrl.isNotEmpty()) {
             fetchEpisodeListForUrl(currentEpisodeUrl)
@@ -286,6 +290,7 @@ class PlayerActivity : AppCompatActivity() {
                         player?.release()
                         initPlayer(result.first, result.second, item.url)
                         checkSavedPosition()
+                        checkLikedState(item.url)
                     } else {
                         Toast.makeText(this@PlayerActivity, "Error al cargar el episodio", Toast.LENGTH_SHORT).show()
                     }
@@ -409,6 +414,7 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<android.widget.ImageButton>(R.id.btnClosePanel).setOnClickListener { if (isPanelOpen) togglePanel() }
 
         btnSeekConfig.setOnClickListener { showSeekConfigDialog() }
+        btnFavorite.setOnClickListener { toggleFavorite() }
     }
 
     private fun setupDoubleTap() {
@@ -696,6 +702,105 @@ class PlayerActivity : AppCompatActivity() {
     }
 
 
+
+    // --- Favoritos ---
+
+    private fun updateFavoriteButton() {
+        val color = if (isLiked) android.graphics.Color.parseColor("#F43F5E") else android.graphics.Color.parseColor("#666666")
+        btnFavorite.imageTintList = android.content.res.ColorStateList.valueOf(color)
+    }
+
+    private fun checkLikedState(url: String) {
+        val client = sharedClient ?: return
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val html = client.newCall(
+                    Request.Builder().url(url).header("User-Agent", "Mozilla/5.0").build()
+                ).execute().body?.string() ?: return@launch
+
+                val pattern = Regex("""wire:snapshot="([^"]+)"""")
+                var liked = false
+                for (match in pattern.findAll(html)) {
+                    val decoded = android.text.Html.fromHtml(match.groupValues[1], android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+                    if (decoded.contains("like-button") || decoded.contains("liked")) {
+                        liked = try {
+                            org.json.JSONObject(decoded).getJSONObject("data").optBoolean("liked", false)
+                        } catch (_: Exception) { false }
+                        break
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    isLiked = liked
+                    updateFavoriteButton()
+                }
+            } catch (_: Exception) { }
+        }
+    }
+
+    private fun toggleFavorite() {
+        val client = sharedClient ?: return
+        val url = currentEpisodeUrl
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val html = client.newCall(
+                    Request.Builder().url(url).header("User-Agent", "Mozilla/5.0").build()
+                ).execute().body?.string() ?: throw Exception("Empty body")
+
+                val doc = org.jsoup.Jsoup.parse(html)
+                val csrfToken = doc.selectFirst("script[data-csrf]")?.attr("data-csrf")
+                    ?: throw Exception("CSRF not found")
+
+                val pattern = Regex("""wire:snapshot="([^"]+)"""")
+                var snapshot = ""
+                for (match in pattern.findAll(html)) {
+                    val decoded = android.text.Html.fromHtml(match.groupValues[1], android.text.Html.FROM_HTML_MODE_LEGACY).toString()
+                    if (decoded.contains("like-button") || decoded.contains("episodeId")) {
+                        snapshot = decoded; break
+                    }
+                }
+                if (snapshot.isEmpty()) throw Exception("Snapshot not found")
+
+                val payload = org.json.JSONObject().apply {
+                    put("_token", csrfToken)
+                    put("components", org.json.JSONArray().put(
+                        org.json.JSONObject().apply {
+                            put("snapshot", snapshot)
+                            put("updates", org.json.JSONObject())
+                            put("calls", org.json.JSONArray().put(
+                                org.json.JSONObject().apply {
+                                    put("path", ""); put("method", "like"); put("params", org.json.JSONArray())
+                                }
+                            ))
+                        }
+                    ))
+                }
+
+                val body = okhttp3.RequestBody.create("application/json".toMediaType(), payload.toString())
+                val resp = client.newCall(
+                    Request.Builder()
+                        .url("https://hstream.moe/livewire/update")
+                        .header("User-Agent", "Mozilla/5.0")
+                        .header("X-CSRF-TOKEN", csrfToken)
+                        .header("X-Requested-With", "XMLHttpRequest")
+                        .header("Content-Type", "application/json")
+                        .post(body).build()
+                ).execute()
+
+                if (!resp.isSuccessful) throw Exception("HTTP ${resp.code}")
+
+                withContext(Dispatchers.Main) {
+                    isLiked = !isLiked
+                    updateFavoriteButton()
+                    val msg = if (isLiked) "Added to favorites" else "Removed from favorites"
+                    android.widget.Toast.makeText(this@PlayerActivity, msg, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(this@PlayerActivity, "Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     // --- Panel de episodios ---
 
