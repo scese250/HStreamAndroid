@@ -172,7 +172,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun initPlayer(mpdUrl: String, subtitleUrl: String, referer: String) {
         val client = sharedClient ?: run {
-            Toast.makeText(this, "Error: cliente HTTP no disponible", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Error: HTTP client not available", Toast.LENGTH_LONG).show()
             finish()
             return
         }
@@ -293,7 +293,7 @@ class PlayerActivity : AppCompatActivity() {
                         checkLikedState(item.url)
                         HistoryManager.addHistory(this@PlayerActivity, item)
                     } else {
-                        Toast.makeText(this@PlayerActivity, "Error al cargar el episodio", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@PlayerActivity, "Error loading episode", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
@@ -884,9 +884,9 @@ class PlayerActivity : AppCompatActivity() {
         if (savedPos > 30_000L) {
             val label = formatMs(savedPos)
             val snackbar = com.google.android.material.snackbar.Snackbar.make(
-                playerView, "Continuar desde $label", 8000
+                playerView, "Continue from $label", 8000
             )
-            snackbar.setAction("Continuar") {
+            snackbar.setAction("Continue") {
                 player?.seekTo(savedPos)
                 dismissSnackbarScrim()
             }

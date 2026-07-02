@@ -82,7 +82,7 @@ class VideoAdapter(
                                 )
                                 holder.imagePoster.load(url) { crossfade(false) }
                                 frame = (frame + 1) % 20
-                                h.postDelayed(this, 300)
+                                h.postDelayed(this, 600)
                             }
                         }
                         h.postDelayed(r, 400) // inicia despues de 400ms = long press

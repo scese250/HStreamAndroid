@@ -241,7 +241,7 @@ class MainActivity : AppCompatActivity() {
     fun playVideo(item: VideoItem, episodeList: List<VideoItem> = emptyList(), currentIndex: Int = 0) {
         HistoryManager.addHistory(this, item)
         val url = item.url
-        Toast.makeText(this, "Obteniendo stream...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Loading episodes...", Toast.LENGTH_SHORT).show()
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -356,12 +356,12 @@ class MainActivity : AppCompatActivity() {
                             try {
                                 startActivity(intent)
                             } catch (e: Exception) {
-                                Toast.makeText(this@MainActivity, "Reproductor no instalado, abriendo selector", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@MainActivity, "Player not installed, opening selector", Toast.LENGTH_SHORT).show()
                                 intent.setPackage(null)
-                                startActivity(Intent.createChooser(intent, "Selecciona reproductor"))
+                                startActivity(Intent.createChooser(intent, "Select player"))
                             }
                         } else {
-                            startActivity(Intent.createChooser(intent, "Selecciona reproductor"))
+                            startActivity(Intent.createChooser(intent, "Select player"))
                         }
                     }
                 }

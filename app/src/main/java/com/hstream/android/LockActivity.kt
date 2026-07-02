@@ -43,13 +43,13 @@ class LockActivity : AppCompatActivity() {
 
                 override fun onAuthenticationFailed() {
                     super.onAuthenticationFailed()
-                    Toast.makeText(applicationContext, "Autenticación fallida", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(applicationContext, "Authentication failed", Toast.LENGTH_SHORT).show()
                 }
             })
 
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Desbloquear HStream")
-            .setSubtitle("Usa tu huella o PIN para acceder")
+            .setTitle("Unlock HStream")
+            .setSubtitle("Use fingerprint or PIN to unlock")
             .setAllowedAuthenticators(androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK or androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL)
             .build()
 

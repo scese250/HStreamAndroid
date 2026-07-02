@@ -60,7 +60,7 @@ class LoginActivity : AppCompatActivity() {
                     }
 
                     getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).edit().putBoolean("is_logged_in", true).apply()
-                    Toast.makeText(this@LoginActivity, "Login exitoso", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@LoginActivity, "Login successful", Toast.LENGTH_SHORT).show()
 
                     // Sync layout setting from server
                     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {

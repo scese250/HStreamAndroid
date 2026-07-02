@@ -75,7 +75,7 @@ class EpisodeAdapter(
                                 )
                                 holder.imageThumbnail.load(url) { crossfade(false) }
                                 frame = (frame + 1) % 20
-                                h.postDelayed(this, 300)
+                                h.postDelayed(this, 600)
                             }
                         }
                         h.postDelayed(r, 400)
