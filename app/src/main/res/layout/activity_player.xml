@@ -95,15 +95,6 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:tint="#FFFFFF"
                 android:contentDescription="Seek config" />
-
-            <ImageButton
-                android:id="@+id/btnFavorite"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:src="@drawable/ic_heart"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:tint="#666666"
-                android:contentDescription="Favorite" />
         </LinearLayout>
 
         <!-- Bottom: seekbar + tiempo + botones -->
@@ -167,6 +158,17 @@
                     android:layout_width="0dp"
                     android:layout_height="0dp"
                     android:layout_weight="1" />
+
+                <!-- Boton favorito -->
+                <ImageButton
+                    android:id="@+id/btnFavorite"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@drawable/ic_heart"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:tint="#666666"
+                    android:layout_marginEnd="8dp"
+                    android:contentDescription="Favorite" />
 
                 <!-- Boton lista de capitulos -->
                 <ImageButton
