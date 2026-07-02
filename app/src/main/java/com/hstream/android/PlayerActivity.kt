@@ -364,10 +364,17 @@ class PlayerActivity : AppCompatActivity() {
 
         playerView.setOnClickListener { toggleControls() }
 
-        // ponytail: GestureDetector en overlay para capturar fling-derecha incluso con controles visibles
+        // ponytail: GestureDetector en overlay para capturar fling-derecha y doble-tap incluso con controles visibles
         val overlayGesture = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                 toggleControls(); return true
+            }
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                val rightHand = getSharedPreferences("HStreamPrefs", Context.MODE_PRIVATE).getBoolean("right_hand_fap", false)
+                val isLeftSide = e.rawX < resources.displayMetrics.widthPixels / 2f
+                val forward = if (rightHand) isLeftSide else !isLeftSide
+                seekRelative(if (forward) getSeekSeconds() else -getSeekSeconds())
+                return true
             }
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, vX: Float, vY: Float): Boolean {
                 if (Math.abs(vX) > Math.abs(vY) * 1.5f && vX > 0 && !isPanelOpen) {
