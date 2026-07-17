@@ -30,6 +30,7 @@ class SearchFragment : Fragment() {
     private var currentPage = 1
     private var isLoading = false
     private var isPosterLayout = true
+    private var isHeaderHidden = false
     
     private val client: OkHttpClient
         get() = (requireActivity() as MainActivity).client
@@ -256,10 +257,19 @@ class SearchFragment : Fragment() {
         }
 
         val searchHeader = view.findViewById<android.widget.FrameLayout>(R.id.searchHeader)
-        var isHeaderHidden = false
         val searchHeaderHeight = (50 * resources.displayMetrics.density).toInt()
         val toolbarHeight = (56 * resources.displayMetrics.density).toInt()
         val toolbar = requireActivity().findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+
+        // Restaurar SIN animación el estado de header colapsado que se había dejado al irse.
+        // Snap a extremos: si isHeaderHidden=true -> ambos a 0; si no, dejamos los heights
+        // que el layout XML les asignó al inflar (50dp searchHeader, 56dp toolbar).
+        // El listener de scroll más abajo maneja la animación cuando el usuario realmente scrollea.
+        if (stateBundle != null && stateBundle.getBoolean("isHeaderHidden", false)) {
+            isHeaderHidden = true
+            searchHeader.layoutParams.height = 0
+            toolbar.layoutParams.height = 0
+        }
 
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -340,6 +350,12 @@ class SearchFragment : Fragment() {
                 outState.putParcelable("recyclerState", it.onSaveInstanceState())
             }
         }
+        // Estado del header colapsado: sólo el flag binario. Si isHeaderHidden=true -> 0,
+        // si no -> el XML default (50dp header / 56dp toolbar). Snap a extremos: no guardamos
+        // las heights reales porque un save mid-animation tendría valores fraccionales
+        // (28dp etc.) que se ven peor que 0/full al restaurar.
+        outState.putBoolean("isHeaderHidden", isHeaderHidden)
+
         if (this::adapter.isInitialized) {
             outState.putParcelableArrayList("videoItems", ArrayList(adapter.getItems()))
         }
