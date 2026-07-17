@@ -78,4 +78,19 @@ class HomeFragment : Fragment() {
             (activity as? MainActivity)?.cacheTabState("home:active_tab", Bundle(outState))
         }
     }
+
+    override fun onDestroyView() {
+        // Safety net para el cache: onDestroyView SIEMPRE dispara cuando la view se va,
+        // incluso en fragment-transactions sin backstack donde onSaveInstanceState puede no
+        // invocarse. Idempotente con la copia en onSaveInstanceState.
+        view?.let { v ->
+            val cacheBundle = Bundle()
+            cacheBundle.putInt(
+                "activeTab",
+                v.findViewById<ViewPager2>(R.id.viewPagerHome).currentItem
+            )
+            (activity as? MainActivity)?.cacheTabState("home:active_tab", cacheBundle)
+        }
+        super.onDestroyView()
+    }
 }

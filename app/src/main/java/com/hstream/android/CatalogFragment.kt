@@ -130,6 +130,24 @@ class CatalogFragment : Fragment() {
         (activity as? MainActivity)?.cacheTabState("catalog:$type", Bundle(outState))
     }
 
+    override fun onDestroyView() {
+        // Safety net para el cache: onDestroyView SIEMPRE dispara cuando la view se va,
+        // incluso en fragment-transactions sin backstack donde onSaveInstanceState puede no
+        // invocarse. Idempotente con la copia en onSaveInstanceState.
+        view?.let { v ->
+            val cacheBundle = Bundle()
+            cacheBundle.putInt("currentPage", currentPage)
+            v.findViewById<RecyclerView>(R.id.recyclerCatalog).layoutManager?.let {
+                cacheBundle.putParcelable("recyclerState", it.onSaveInstanceState())
+            }
+            if (this::adapter.isInitialized) {
+                cacheBundle.putParcelableArrayList("videoItems", ArrayList(adapter.getItems()))
+            }
+            (activity as? MainActivity)?.cacheTabState("catalog:$type", cacheBundle)
+        }
+        super.onDestroyView()
+    }
+
     private fun loadCatalog() {
         isLoading = true
         if (currentPage == 1) progressBar.visibility = View.VISIBLE

@@ -334,35 +334,40 @@ class SearchFragment : Fragment() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        // Defensive copy: Bundle.putBooleanArray guarda la referencia, igual que Bundle(outState).
-        // Sin el .copyOf(), selectedGenres/blacklist/studios y los bundles outState y cachedSearchBundle
-        // compartirían el mismo array y una mutación tardía corrompería silenciosamente el cache.
-        outState.putBooleanArray("selectedGenres", selectedGenres.copyOf())
-        outState.putBooleanArray("selectedBlacklist", selectedBlacklist.copyOf())
-        outState.putBooleanArray("selectedStudios", selectedStudios.copyOf())
-        outState.putInt("currentPage", currentPage)
-
-        view?.let { v ->
-            outState.putString("searchQuery", v.findViewById<EditText>(R.id.editSearch).text.toString())
-            outState.putInt("sortPosition", v.findViewById<Spinner>(R.id.spinnerSort).selectedItemPosition)
-            outState.putInt("filterVisibility", v.findViewById<View>(R.id.filterContainer).visibility)
-            v.findViewById<RecyclerView>(R.id.recyclerSearch).layoutManager?.let {
-                outState.putParcelable("recyclerState", it.onSaveInstanceState())
-            }
-        }
-        // Estado del header colapsado: sólo el flag binario. Si isHeaderHidden=true -> 0,
-        // si no -> el XML default (50dp header / 56dp toolbar). Snap a extremos: no guardamos
-        // las heights reales porque un save mid-animation tendría valores fraccionales
-        // (28dp etc.) que se ven peor que 0/full al restaurar.
-        outState.putBoolean("isHeaderHidden", isHeaderHidden)
-
-        if (this::adapter.isInitialized) {
-            outState.putParcelableArrayList("videoItems", ArrayList(adapter.getItems()))
-        }
-
+        captureStateInto(outState)
         // Bridge de drawer: la copia vive en MainActivity.tabStateCache["search"] hasta que
         // una nueva instancia de SearchFragment la consuma.
+        // (Idempotente con la copia en onDestroyView; ambos escriben los mismos datos.)
         (activity as? MainActivity)?.cacheTabState("search", Bundle(outState))
+    }
+
+    // Single source of truth para serializar el estado. Se invoca desde ambos
+    // onSaveInstanceState (para rotación/process-kill vía FragmentManager) y
+    // onDestroyView (safety net para fragment-transactions sin backstack).
+    private fun captureStateInto(b: Bundle) {
+        // Defensive copy: Bundle.putBooleanArray guarda la referencia. Sin el .copyOf(),
+        // selectedGenres/blacklist/studios y los bundles outState y cachedSearchBundle
+        // compartirían el mismo array y una mutación tardía corrompería el cache.
+        b.putBooleanArray("selectedGenres", selectedGenres.copyOf())
+        b.putBooleanArray("selectedBlacklist", selectedBlacklist.copyOf())
+        b.putBooleanArray("selectedStudios", selectedStudios.copyOf())
+        b.putInt("currentPage", currentPage)
+
+        view?.let { v ->
+            b.putString("searchQuery", v.findViewById<EditText>(R.id.editSearch).text.toString())
+            b.putInt("sortPosition", v.findViewById<Spinner>(R.id.spinnerSort).selectedItemPosition)
+            b.putInt("filterVisibility", v.findViewById<View>(R.id.filterContainer).visibility)
+            v.findViewById<RecyclerView>(R.id.recyclerSearch).layoutManager?.let {
+                b.putParcelable("recyclerState", it.onSaveInstanceState())
+            }
+        }
+
+        // Estado del header colapsado: sólo el flag binario. Restore snaps a 0/full.
+        b.putBoolean("isHeaderHidden", isHeaderHidden)
+
+        if (this::adapter.isInitialized) {
+            b.putParcelableArrayList("videoItems", ArrayList(adapter.getItems()))
+        }
     }
 
     private fun showFilterDialog(title: String, checkedItemsArray: BooleanArray, subtitleView: android.widget.TextView, suffix: String) {
@@ -657,6 +662,15 @@ class SearchFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        // Safety net para el cache: onDestroyView SIEMPRE dispara cuando la view se va
+        // (backstack pop con replace + addToBackStack, drawer nav con replace sin backstack,
+        // y recreation por activity). Complementa onSaveInstanceState, que Android no
+        // garantiza para fragment-transactions sin backstack. Idempotente con esa copia.
+        // super destruye view; todo acceso posterior a view es inválido.
+        val cacheBundle = Bundle()
+        captureStateInto(cacheBundle)
+        (activity as? MainActivity)?.cacheTabState("search", cacheBundle)
+
         super.onDestroyView()
         val toolbar = requireActivity().findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
         val lp = toolbar.layoutParams
