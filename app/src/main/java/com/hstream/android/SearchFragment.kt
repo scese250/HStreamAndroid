@@ -1,15 +1,21 @@
 package com.hstream.android
 
 import android.app.AlertDialog
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.OvershootInterpolator
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
@@ -21,17 +27,23 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
 import java.net.URLEncoder
 
 class SearchFragment : Fragment() {
 
     private lateinit var adapter: VideoAdapter
     private lateinit var progressBar: ProgressBar
+    private lateinit var pageControlBar: LinearLayout
+    private lateinit var txtPageIndicator: TextView
+    private lateinit var edtPageInput: EditText
+    private lateinit var fabToggle: TextView
     private var currentPage = 1
+    private var totalPages = 1
     private var isLoading = false
     private var isPosterLayout = true
     private var isHeaderHidden = false
-    
+
     private val client: OkHttpClient
         get() = (requireActivity() as MainActivity).client
 
@@ -118,7 +130,7 @@ class SearchFragment : Fragment() {
                 selectedStudios[idx] = true
             }
         }
-        
+
         val spinnerSort: Spinner = view.findViewById(R.id.spinnerSort)
         val sortOptions = listOf(
             "Recently Uploaded",
@@ -136,24 +148,24 @@ class SearchFragment : Fragment() {
         )
         sortAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item)
         spinnerSort.adapter = sortAdapter
-        
+
         val editSearch: EditText = view.findViewById(R.id.editSearch)
-        
+
         var isSpinnerInitialized = false
 
         val btnGenres: androidx.cardview.widget.CardView = view.findViewById(R.id.btnGenres)
         val btnBlacklist: androidx.cardview.widget.CardView = view.findViewById(R.id.btnBlacklist)
         val btnStudios: androidx.cardview.widget.CardView = view.findViewById(R.id.btnStudios)
-        
+
         val txtGenresSubtitle: android.widget.TextView = view.findViewById(R.id.txtGenresSubtitle)
         val txtBlacklistSubtitle: android.widget.TextView = view.findViewById(R.id.txtBlacklistSubtitle)
         val txtStudiosSubtitle: android.widget.TextView = view.findViewById(R.id.txtStudiosSubtitle)
-        
+
         val btnApplyFilters: Button = view.findViewById(R.id.btnApplyFilters)
-        
+
         val btnToggleFilters: android.widget.ImageButton = view.findViewById(R.id.btnToggleFilters)
         val filterContainer: View = view.findViewById(R.id.filterContainer)
-        
+
         btnToggleFilters.setOnClickListener {
             if (filterContainer.visibility == View.VISIBLE) {
                 filterContainer.visibility = View.GONE
@@ -161,9 +173,13 @@ class SearchFragment : Fragment() {
                 filterContainer.visibility = View.VISIBLE
             }
         }
-        
+
         progressBar = view.findViewById(R.id.progressSearch)
         val recyclerView: RecyclerView = view.findViewById(R.id.recyclerSearch)
+        pageControlBar = view.findViewById(R.id.pageControlBar)
+        txtPageIndicator = view.findViewById(R.id.txtPageIndicator)
+        edtPageInput = view.findViewById(R.id.edtPageInput)
+        fabToggle = view.findViewById(R.id.fabToggle)
 
         adapter = VideoAdapter(mutableListOf()) { item ->
             (requireActivity() as MainActivity).handleVideoClick(item)
@@ -178,6 +194,7 @@ class SearchFragment : Fragment() {
             stateBundle.getBooleanArray("selectedBlacklist")?.copyInto(selectedBlacklist)
             stateBundle.getBooleanArray("selectedStudios")?.copyInto(selectedStudios)
             currentPage = stateBundle.getInt("currentPage", 1)
+            totalPages = stateBundle.getInt("totalPages", 1)
 
             editSearch.setText(stateBundle.getString("searchQuery", ""))
             spinnerSort.setSelection(stateBundle.getInt("sortPosition", 0))
@@ -232,29 +249,39 @@ class SearchFragment : Fragment() {
         btnStudios.setOnClickListener {
             showStudiosDialog("Studios", selectedStudios, txtStudiosSubtitle, "Studios Selected")
         }
-        
+
         isPosterLayout = searchDesign != "thumbnail"
-        
+
         btnApplyFilters.setOnClickListener {
             filterContainer.visibility = View.GONE
             currentPage = 1
             adapter.clearItems()
             performSearch(editSearch.text.toString(), spinnerSort.selectedItemPosition)
         }
-        
+
         editSearch.setOnEditorActionListener { _, actionId, event ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH ||
                 (event != null && event.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)) {
-                
+
                 val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
                 imm.hideSoftInputFromWindow(editSearch.windowToken, 0)
-                
+
                 btnApplyFilters.performClick()
                 true
             } else {
                 false
             }
         }
+
+        // Handlers del overlay de paginación.
+        fabToggle.setOnClickListener { togglePageOverlay() }
+        edtPageInput.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_GO) {
+                handlePageInputSubmit()
+                true
+            } else false
+        }
+        updatePageIndicatorView()
 
         val searchHeader = view.findViewById<android.widget.FrameLayout>(R.id.searchHeader)
         val searchHeaderHeight = (50 * resources.displayMetrics.density).toInt()
@@ -281,11 +308,11 @@ class SearchFragment : Fragment() {
                     val anim = android.animation.ValueAnimator.ofFloat(1f, 0f)
                     anim.addUpdateListener { valueAnimator ->
                         val fraction = valueAnimator.animatedValue as Float
-                        
+
                         val lpSearch = searchHeader.layoutParams
                         lpSearch.height = (searchHeaderHeight * fraction).toInt()
                         searchHeader.layoutParams = lpSearch
-                        
+
                         val lpToolbar = toolbar.layoutParams
                         lpToolbar.height = (toolbarHeight * fraction).toInt()
                         toolbar.layoutParams = lpToolbar
@@ -297,11 +324,11 @@ class SearchFragment : Fragment() {
                     val anim = android.animation.ValueAnimator.ofFloat(0f, 1f)
                     anim.addUpdateListener { valueAnimator ->
                         val fraction = valueAnimator.animatedValue as Float
-                        
+
                         val lpSearch = searchHeader.layoutParams
                         lpSearch.height = (searchHeaderHeight * fraction).toInt()
                         searchHeader.layoutParams = lpSearch
-                        
+
                         val lpToolbar = toolbar.layoutParams
                         lpToolbar.height = (toolbarHeight * fraction).toInt()
                         toolbar.layoutParams = lpToolbar
@@ -309,7 +336,7 @@ class SearchFragment : Fragment() {
                     anim.duration = 200
                     anim.start()
                 }
-                
+
                 if (dy > 0) {
                     val visibleItemCount = layoutManager.childCount
                     val totalItemCount = layoutManager.itemCount
@@ -322,7 +349,7 @@ class SearchFragment : Fragment() {
                 }
             }
         })
-        
+
         if (stateBundle == null && preSelectedStudio != null) {
             currentPage = 1
             adapter.clearItems()
@@ -352,14 +379,12 @@ class SearchFragment : Fragment() {
         b.putBooleanArray("selectedBlacklist", selectedBlacklist.copyOf())
         b.putBooleanArray("selectedStudios", selectedStudios.copyOf())
         b.putInt("currentPage", currentPage)
-
-        view?.let { v ->
-            b.putString("searchQuery", v.findViewById<EditText>(R.id.editSearch).text.toString())
-            b.putInt("sortPosition", v.findViewById<Spinner>(R.id.spinnerSort).selectedItemPosition)
-            b.putInt("filterVisibility", v.findViewById<View>(R.id.filterContainer).visibility)
-            v.findViewById<RecyclerView>(R.id.recyclerSearch).layoutManager?.let {
-                b.putParcelable("recyclerState", it.onSaveInstanceState())
-            }
+        b.putInt("totalPages", totalPages)
+        b.putString("searchQuery", view?.findViewById<EditText>(R.id.editSearch)?.text?.toString() ?: "")
+        b.putInt("sortPosition", view?.findViewById<Spinner>(R.id.spinnerSort)?.selectedItemPosition ?: 0)
+        b.putInt("filterVisibility", view?.findViewById<View>(R.id.filterContainer)?.visibility ?: View.GONE)
+        view?.findViewById<RecyclerView>(R.id.recyclerSearch)?.layoutManager?.let {
+            b.putParcelable("recyclerState", it.onSaveInstanceState())
         }
 
         // Estado del header colapsado: sólo el flag binario. Restore snaps a 0/full.
@@ -405,7 +430,7 @@ class SearchFragment : Fragment() {
         categories.forEach { (cat, tags) ->
             val header = headers[cat]!!
             val grid = grids[cat]!!
-            
+
             val updateHeaderFn = {
                 var c = 0
                 categoryChips[cat]?.forEach { if(it.isSelected) c++ }
@@ -420,10 +445,10 @@ class SearchFragment : Fragment() {
                     header.text = cat
                 }
             }
-            
+
             header.text = cat
             header.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ic_arrow_down, 0)
-            
+
             header.setOnClickListener {
                 if (grid.visibility == View.GONE) {
                     grid.visibility = View.VISIBLE
@@ -453,7 +478,7 @@ class SearchFragment : Fragment() {
                         background = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.bg_chip_selector)
                         isSelected = isChecked
                         isClickable = true
-                        
+
                         setOnClickListener {
                             isSelected = !isSelected
                             setTextColor(if (isSelected) android.graphics.Color.parseColor("#BB86FC") else android.graphics.Color.parseColor("#E3E3E3"))
@@ -494,7 +519,7 @@ class SearchFragment : Fragment() {
 
         dialogView.findViewById<android.widget.TextView>(R.id.txtDialogTitle).text = title
         val grid = dialogView.findViewById<android.widget.GridLayout>(R.id.gridStudios)
-        
+
         val allChips = mutableListOf<android.widget.TextView>()
         val density = resources.displayMetrics.density
 
@@ -510,7 +535,7 @@ class SearchFragment : Fragment() {
                 isFocusable = true
                 gravity = android.view.Gravity.CENTER
             }
-            
+
             val params = android.widget.GridLayout.LayoutParams().apply {
                 width = 0
                 height = android.widget.GridLayout.LayoutParams.WRAP_CONTENT
@@ -519,12 +544,12 @@ class SearchFragment : Fragment() {
             }
             grid.addView(chip, params)
             allChips.add(chip)
-            
+
             chip.setOnClickListener {
                 it.isSelected = !it.isSelected
             }
         }
-        
+
         dialogView.findViewById<Button>(R.id.btnDialogCancel).setOnClickListener {
             for (i in studiosList.indices) {
                 checkedItemsArray[i] = false
@@ -589,10 +614,10 @@ class SearchFragment : Fragment() {
         )
         val order = if (sortIndex in orderParams.indices) orderParams[sortIndex] else "recently-released"
         params.add("order=$order")
-        
+
         val viewParam = if (isPosterLayout) "poster" else "thumbnail"
         params.add("view=$viewParam")
-        
+
         params.add("page=$page")
 
         return baseUrl + params.joinToString("&")
@@ -613,28 +638,32 @@ class SearchFragment : Fragment() {
 
                 val response = client.newCall(request).execute()
                 val html = response.body?.string() ?: throw Exception("Empty body")
-                
+
                 val doc = Jsoup.parse(html)
                 val links = doc.select("a[href^=/hentai/], a[href^=https://hstream.moe/hentai/]")
-                
+
+                // Detectar total de páginas a partir de los enlaces ?page=K y/o texto "of N".
+                val pageTotal = parseTotalPages(doc)
+                if (pageTotal > totalPages) totalPages = pageTotal
+
                 val newItems = mutableListOf<VideoItem>()
                 val seenUrls = mutableSetOf<String>()
 
                 for (link in links) {
                     var itemUrl = link.attr("href")
                     if (itemUrl.startsWith("/")) itemUrl = "https://hstream.moe$itemUrl"
-                    
+
                     if (seenUrls.contains(itemUrl)) continue
                     seenUrls.add(itemUrl)
-                    
+
                     val img = link.selectFirst("img") ?: continue
                     var posterUrl = img.attr("data-src").ifEmpty { img.attr("src") }
                     if (posterUrl.isEmpty()) continue
                     if (posterUrl.startsWith("/")) posterUrl = "https://hstream.moe$posterUrl"
-                    
+
                     val p = link.selectFirst("p")
                     val title = p?.text() ?: img.attr("alt").ifEmpty { "Unknown" }
-                    
+
                     newItems.add(VideoItem(itemUrl, title, posterUrl))
                 }
 
@@ -648,7 +677,8 @@ class SearchFragment : Fragment() {
                     if (currentPage == 1) {
                         adapter.clearItems()
                     }
-                    adapter.addItems(newItems) 
+                    adapter.addItems(newItems)
+                    updatePageIndicatorView()
                     isLoading = false
                 }
             } catch (e: Exception) {
@@ -659,6 +689,102 @@ class SearchFragment : Fragment() {
                 }
             }
         }
+    }
+
+    /**
+     * Salto directo a una página específica conservando query, sort, filtros.
+     * Limpia los items actuales para que el usuario pueda hacer scroll-up sin duplicados.
+     */
+    private fun jumpToPage(page: Int) {
+        currentPage = page
+        adapter.clearItems()
+        isLoading = false
+        performSearch(
+            view?.findViewById<EditText>(R.id.editSearch)?.text?.toString() ?: "",
+            view?.findViewById<Spinner>(R.id.spinnerSort)?.selectedItemPosition ?: 0
+        )
+    }
+
+    private fun updatePageIndicatorView() {
+        if (this::txtPageIndicator.isInitialized) {
+            txtPageIndicator.text = "$currentPage / $totalPages"
+        }
+    }
+
+    private fun parseTotalPages(doc: Document): Int {
+        var maxFound = 1
+        for (a in doc.select("a[href]")) {
+            val href = a.attr("href")
+            val m = Regex("""[?&]page=(\d+)""").find(href)
+            if (m != null) {
+                val k = m.groupValues[1].toIntOrNull()
+                if (k != null && k > maxFound) maxFound = k
+            }
+        }
+        val ofTxt = Regex("""of\s+(\d+)""", RegexOption.IGNORE_CASE).find(doc.body().text())
+        if (ofTxt != null) {
+            val y = ofTxt.groupValues[1].toIntOrNull()
+            if (y != null && y > maxFound) maxFound = y
+        }
+        return maxFound
+    }
+
+    private fun togglePageOverlay() {
+        if (pageControlBar.visibility == View.GONE) {
+            pageControlBar.alpha = 0f
+            pageControlBar.translationY = (12 * resources.displayMetrics.density)
+            pageControlBar.visibility = View.VISIBLE
+            pageControlBar.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(180)
+                .setInterpolator(OvershootInterpolator())
+                .start()
+
+            val currentQuery = view?.findViewById<EditText>(R.id.editSearch)?.text?.toString() ?: ""
+            edtPageInput.setText(currentPage.toString())
+            edtPageInput.setSelection(edtPageInput.text.length)
+            edtPageInput.requestFocus()
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(edtPageInput, InputMethodManager.SHOW_IMPLICIT)
+        } else {
+            hidePageOverlay()
+        }
+    }
+
+    private fun hidePageOverlay() {
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(edtPageInput.windowToken, 0)
+        val offsetPx = (12 * resources.displayMetrics.density)
+        pageControlBar.animate()
+            .alpha(0f)
+            .translationY(offsetPx)
+            .setDuration(160)
+            .withEndAction {
+                pageControlBar.visibility = View.GONE
+                pageControlBar.alpha = 1f
+                pageControlBar.translationY = 0f
+            }
+            .start()
+    }
+
+    private fun handlePageInputSubmit() {
+        val raw = edtPageInput.text.toString().trim()
+        val page = raw.toIntOrNull()
+        if (page == null || page < 1) {
+            Toast.makeText(context, "Invalid page", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(edtPageInput.windowToken, 0)
+        pageControlBar.visibility = View.GONE
+        pageControlBar.alpha = 1f
+        pageControlBar.translationY = 0f
+        if (page == currentPage) {
+            Toast.makeText(context, "Already on page $page", Toast.LENGTH_SHORT).show()
+            return
+        }
+        jumpToPage(page)
     }
 
     override fun onDestroyView() {
