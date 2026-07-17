@@ -51,9 +51,20 @@ class CatalogFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_catalog, container, false)
-        
+
         type = arguments?.getString("type") ?: "recently-released"
-        
+
+        // Resolver Bundle de estado: backstack pop (HomeFragment preservado, CatalogFragment
+        // también) -> savedInstanceState; drawer nav desde Home (HomeFragment destruido y los
+        // CatalogFragment hijos también) -> cache de MainActivity con clave estable por type.
+        val stateBundle: Bundle? = savedInstanceState
+            ?: (activity as? MainActivity)?.consumeTabState("catalog:$type")
+
+        // Restaurar currentPage antes de cualquier loadCatalog() / addItems().
+        if (stateBundle != null) {
+            currentPage = stateBundle.getInt("currentPage", 1)
+        }
+
         progressBar = view.findViewById(R.id.progressCatalog)
         val recyclerView: RecyclerView = view.findViewById(R.id.recyclerCatalog)
 
@@ -66,6 +77,16 @@ class CatalogFragment : Fragment() {
         val layoutManager = GridLayoutManager(context, spanCount)
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = adapter
+
+        if (stateBundle != null) {
+            // Re-aplicar items cargados y scroll DESPUÉS de atar el adapter y ANTES de añadir
+            // el scroll listener que dispara paginación. Si no hay items, no navegamos hacia arriba.
+            stateBundle.getParcelableArrayList<VideoItem>("videoItems")?.let { adapter.addItems(it) }
+            @Suppress("DEPRECATION")
+            stateBundle.getParcelable<android.os.Parcelable>("recyclerState")?.let {
+                layoutManager.onRestoreInstanceState(it)
+            }
+        }
 
         if (!isHomeTab) {
             recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -84,9 +105,29 @@ class CatalogFragment : Fragment() {
             })
         }
 
-        loadCatalog()
+        if (stateBundle == null) {
+            loadCatalog()
+        }
 
         return view
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt("currentPage", currentPage)
+        view?.let { v ->
+            v.findViewById<RecyclerView>(R.id.recyclerCatalog).layoutManager?.let {
+                outState.putParcelable("recyclerState", it.onSaveInstanceState())
+            }
+        }
+        if (this::adapter.isInitialized) {
+            outState.putParcelableArrayList("videoItems", ArrayList(adapter.getItems()))
+        }
+
+        // Bridge de drawer: si HomeFragment se destruye por navegación del drawer, sus
+        // CatalogFragment hijos también pasan por onSaveInstanceState y dejan aquí su
+        // snapshot por si el usuario vuelve a Home.
+        (activity as? MainActivity)?.cacheTabState("catalog:$type", Bundle(outState))
     }
 
     private fun loadCatalog() {
@@ -108,34 +149,34 @@ class CatalogFragment : Fragment() {
 
                 val response = client.newCall(request).execute()
                 val html = response.body?.string() ?: throw Exception("Empty body")
-                
+
                 val doc = Jsoup.parse(html)
-                
+
                 val links = if (isHomeTab) {
                     doc.select("#tabs-$type a[href^=/hentai/], #tabs-$type a[href^=https://hstream.moe/hentai/]")
                 } else {
                     doc.select("a[href^=/hentai/], a[href^=https://hstream.moe/hentai/]")
                 }
-                
+
                 val newItems = mutableListOf<VideoItem>()
                 val seenUrls = mutableSetOf<String>()
 
                 for (link in links) {
                     var itemUrl = link.attr("href")
                     if (itemUrl.startsWith("/")) itemUrl = "https://hstream.moe$itemUrl"
-                    
+
                     if (seenUrls.contains(itemUrl)) continue
                     seenUrls.add(itemUrl)
-                    
+
                     val img = link.selectFirst("img") ?: continue
-                    
+
                     var posterUrl = img.attr("data-src").ifEmpty { img.attr("src") }
                     if (posterUrl.isEmpty()) continue
                     if (posterUrl.startsWith("/")) posterUrl = "https://hstream.moe$posterUrl"
-                    
+
                     val p = link.selectFirst("p")
                     val title = p?.text() ?: img.attr("alt").ifEmpty { "Desconocido" }
-                    
+
                     newItems.add(VideoItem(itemUrl, title, posterUrl))
                 }
 

@@ -122,4 +122,6 @@ class VideoAdapter(
         items.clear()
         notifyItemRangeRemoved(0, size)
     }
+
+    fun getItems(): List<VideoItem> = items
 }

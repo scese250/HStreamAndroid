@@ -101,7 +101,15 @@ class SearchFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_search, container, false)
-        
+
+        // Resolver Bundle de estado: backstack pop -> savedInstanceState; drawer nav -> cache de MainActivity.
+        // Las búsquedas por studio explícito (newInstance(studioId)) ignoran el cache para no contaminarse
+        // con el estado de un Search anterior (el cache se preserva para la próxima vuelta "normal" a Search).
+        val isStudioSearch = arguments?.getString("studioId") != null
+        val stateBundle: Bundle? = savedInstanceState ?: if (!isStudioSearch) {
+            (activity as? MainActivity)?.consumeTabState("search")
+        } else null
+
         val preSelectedStudio = arguments?.getString("studioId")
         if (preSelectedStudio != null) {
             val idx = studiosList.indexOfFirst { it.second == preSelectedStudio }
@@ -162,22 +170,39 @@ class SearchFragment : Fragment() {
 
         val prefs = requireActivity().getSharedPreferences("HStreamPrefs", android.content.Context.MODE_PRIVATE)
         val searchDesign = prefs.getString("searchDesign", "cover")
-        
-        val cachedBlacklist = prefs.getStringSet("cached_blacklist", setOf()) ?: setOf()
-        var blacklistCount = 0
-        for (i in genresList.indices) {
-            val tag = genresList[i].first
-            if (cachedBlacklist.contains(tag)) {
-                selectedBlacklist[i] = true
-                blacklistCount++
+
+        if (stateBundle != null) {
+            // Restaurar filtros, query, sort, paginación y visibilidad del panel desde el bundle
+            stateBundle.getBooleanArray("selectedGenres")?.copyInto(selectedGenres)
+            stateBundle.getBooleanArray("selectedBlacklist")?.copyInto(selectedBlacklist)
+            stateBundle.getBooleanArray("selectedStudios")?.copyInto(selectedStudios)
+            currentPage = stateBundle.getInt("currentPage", 1)
+
+            editSearch.setText(stateBundle.getString("searchQuery", ""))
+            spinnerSort.setSelection(stateBundle.getInt("sortPosition", 0))
+            filterContainer.visibility = stateBundle.getInt("filterVisibility", View.GONE)
+
+            txtGenresSubtitle.text = "${selectedGenres.count { it }} Genres Selected"
+            txtBlacklistSubtitle.text = "${selectedBlacklist.count { it }} Blocked"
+            txtStudiosSubtitle.text = "${selectedStudios.count { it }} Studios Selected"
+        } else {
+            // Carga inicial: hidratar blacklist desde prefs y aplicar studioId de argumentos
+            val cachedBlacklist = prefs.getStringSet("cached_blacklist", setOf()) ?: setOf()
+            var blacklistCount = 0
+            for (i in genresList.indices) {
+                val tag = genresList[i].first
+                if (cachedBlacklist.contains(tag)) {
+                    selectedBlacklist[i] = true
+                    blacklistCount++
+                }
             }
-        }
-        txtBlacklistSubtitle.text = "$blacklistCount Blocked"
-        
-        if (preSelectedStudio != null) {
-            val idx = studiosList.indexOfFirst { it.second == preSelectedStudio }
-            if (idx >= 0) {
-                txtStudiosSubtitle.text = "1 Studios Selected"
+            txtBlacklistSubtitle.text = "$blacklistCount Blocked"
+
+            if (preSelectedStudio != null) {
+                val idx = studiosList.indexOfFirst { it.second == preSelectedStudio }
+                if (idx >= 0) {
+                    txtStudiosSubtitle.text = "1 Studios Selected"
+                }
             }
         }
         val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -185,6 +210,15 @@ class SearchFragment : Fragment() {
         val layoutManager = GridLayoutManager(context, if (isLandscape) baseSpanCount * 2 else baseSpanCount)
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = adapter
+
+        if (stateBundle != null) {
+            // Re-aplicar items y scroll después de atar el adapter; antes del scroll listener activo
+            stateBundle.getParcelableArrayList<VideoItem>("videoItems")?.let { adapter.addItems(it) }
+            @Suppress("DEPRECATION")
+            stateBundle.getParcelable<android.os.Parcelable>("recyclerState")?.let {
+                layoutManager.onRestoreInstanceState(it)
+            }
+        }
 
         btnGenres.setOnClickListener {
             showFilterDialog("Genres", selectedGenres, txtGenresSubtitle, "Genres Selected")
@@ -279,13 +313,40 @@ class SearchFragment : Fragment() {
             }
         })
         
-        if (preSelectedStudio != null) {
+        if (stateBundle == null && preSelectedStudio != null) {
             currentPage = 1
             adapter.clearItems()
             performSearch(editSearch.text.toString(), spinnerSort.selectedItemPosition)
         }
 
         return view
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Defensive copy: Bundle.putBooleanArray guarda la referencia, igual que Bundle(outState).
+        // Sin el .copyOf(), selectedGenres/blacklist/studios y los bundles outState y cachedSearchBundle
+        // compartirían el mismo array y una mutación tardía corrompería silenciosamente el cache.
+        outState.putBooleanArray("selectedGenres", selectedGenres.copyOf())
+        outState.putBooleanArray("selectedBlacklist", selectedBlacklist.copyOf())
+        outState.putBooleanArray("selectedStudios", selectedStudios.copyOf())
+        outState.putInt("currentPage", currentPage)
+
+        view?.let { v ->
+            outState.putString("searchQuery", v.findViewById<EditText>(R.id.editSearch).text.toString())
+            outState.putInt("sortPosition", v.findViewById<Spinner>(R.id.spinnerSort).selectedItemPosition)
+            outState.putInt("filterVisibility", v.findViewById<View>(R.id.filterContainer).visibility)
+            v.findViewById<RecyclerView>(R.id.recyclerSearch).layoutManager?.let {
+                outState.putParcelable("recyclerState", it.onSaveInstanceState())
+            }
+        }
+        if (this::adapter.isInitialized) {
+            outState.putParcelableArrayList("videoItems", ArrayList(adapter.getItems()))
+        }
+
+        // Bridge de drawer: la copia vive en MainActivity.tabStateCache["search"] hasta que
+        // una nueva instancia de SearchFragment la consuma.
+        (activity as? MainActivity)?.cacheTabState("search", Bundle(outState))
     }
 
     private fun showFilterDialog(title: String, checkedItemsArray: BooleanArray, subtitleView: android.widget.TextView, suffix: String) {

@@ -35,6 +35,27 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var client: OkHttpClient
 
+    // Cache de estado de pestañas: cuando un Fragment se destruye por navegación del
+    // drawer (sin addToBackStack), su savedInstanceState Bundle se descarta. Por
+    // cada fragment, copiamos su bundle aquí con una clave estable para que la
+    // próxima instancia restaure items cargados, scroll, filtros, etc.
+    //
+    // Claves:
+    //   "search"                                 -> SearchFragment (cualquier estado de filtro)
+    //   "catalog:<type>"                         -> CatalogFragment (pestaña del Home)
+    //
+    // Consume-once: la próxima vez que un Fragment con esa clave haga onCreateView
+    // sin savedInstanceState, lee el bundle y lo elimina del mapa (consume-once).
+    private val tabStateCache: MutableMap<String, Bundle> = mutableMapOf()
+
+    fun cacheTabState(key: String, bundle: Bundle) {
+        tabStateCache[key] = bundle
+    }
+
+    fun consumeTabState(key: String): Bundle? {
+        return tabStateCache.remove(key)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
