@@ -25,10 +25,18 @@ class CatalogFragment : Fragment() {
     private var isLoading = false
     private var type: String = "recently-released"
 
+    private val isHomeTab: Boolean
+        get() = type in HOME_TABS
+
     private val client: OkHttpClient
         get() = (requireActivity() as MainActivity).client
 
     companion object {
+        // Recently Released y Trending pre-renderizan sus listas en la home
+        // (hstream.moe/#tabs-<id>) con orden cronológico correcto; /search es
+        // poco fiable para "order=recently-released".
+        private val HOME_TABS = setOf("recently-released", "trending")
+
         fun newInstance(type: String): CatalogFragment {
             val fragment = CatalogFragment()
             val args = Bundle()
@@ -59,8 +67,7 @@ class CatalogFragment : Fragment() {
         recyclerView.layoutManager = layoutManager
         recyclerView.adapter = adapter
 
-        // Tendencias no tiene paginación
-        if (type != "trending") {
+        if (!isHomeTab) {
             recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     if (dy > 0) {
@@ -88,7 +95,7 @@ class CatalogFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val url = if (type == "trending") {
+                val url = if (isHomeTab) {
                     "https://hstream.moe/"
                 } else {
                     "https://hstream.moe/search?order=$type&page=$currentPage"
@@ -104,8 +111,8 @@ class CatalogFragment : Fragment() {
                 
                 val doc = Jsoup.parse(html)
                 
-                val links = if (type == "trending") {
-                    doc.select("#tabs-trending a[href^=/hentai/], #tabs-trending a[href^=https://hstream.moe/hentai/]")
+                val links = if (isHomeTab) {
+                    doc.select("#tabs-$type a[href^=/hentai/], #tabs-$type a[href^=https://hstream.moe/hentai/]")
                 } else {
                     doc.select("a[href^=/hentai/], a[href^=https://hstream.moe/hentai/]")
                 }
