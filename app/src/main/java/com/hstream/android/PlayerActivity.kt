@@ -20,11 +20,18 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.dash.DashMediaSource
-import androidx.media3.exoplayer.source.MergingMediaSource
-import androidx.media3.exoplayer.source.SingleSampleMediaSource
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.ui.PlayerView
+import io.github.peerless2012.ass.media.AssHandler
+import io.github.peerless2012.ass.media.AssHandlerConfig
+import io.github.peerless2012.ass.media.kt.withAssMkvSupport
+import io.github.peerless2012.ass.media.kt.withAssSupport
+import io.github.peerless2012.ass.media.parser.AssSubtitleParserFactory
+import io.github.peerless2012.ass.media.type.AssRenderType
+import io.github.peerless2012.ass.media.widget.AssSubtitleView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
@@ -47,6 +54,13 @@ class PlayerActivity : AppCompatActivity() {
 
     companion object {
         var sharedClient: OkHttpClient? = null
+
+        // libass renders subtitles at up to 1080p and lets the GPU upscale, keeping
+        // 4K/high-density devices smooth.
+        private const val MAX_ASS_RENDER_PIXELS = 1920 * 1080
+        // ass-media matches this id to attach the libass track: must be set and unique.
+        private const val ASS_SUBTITLE_ID = "129"
+
         const val EXTRA_MPD_URL       = "extra_mpd_url"
         const val EXTRA_EPISODE_URL   = "extra_episode_url"
         const val EXTRA_EPISODE_TITLE = "extra_episode_title"
@@ -57,6 +71,8 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private var player: ExoPlayer? = null
+    // Kept so libass native resources can be released on episode switch / teardown.
+    private var assHandler: AssHandler? = null
     private lateinit var playerView: PlayerView
     private lateinit var controlsOverlay: View
     private lateinit var btnPlayPause: ImageButton
@@ -165,6 +181,8 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacksAndMessages(null)
         player?.release()
         player = null
+        assHandler?.release()
+        assHandler = null
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
@@ -180,10 +198,34 @@ class PlayerActivity : AppCompatActivity() {
         val dataSourceFactory = OkHttpDataSource.Factory(client)
             .setDefaultRequestProperties(mapOf("Referer" to referer, "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"))
 
-        val dashSource = DashMediaSource.Factory(dataSourceFactory)
-            .createMediaSource(MediaItem.fromUri(mpdUrl))
+        // libass (ass-media) wiring: mirrors buildWithAssSupport(), but keeps the AssHandler
+        // reference so native libass resources can be released on episode switch / teardown.
+        val newAssHandler = AssHandler(
+            AssRenderType.OVERLAY_OPEN_GL,
+            AssHandlerConfig(maxRenderPixels = MAX_ASS_RENDER_PIXELS)
+        )
+        val assParserFactory = AssSubtitleParserFactory(newAssHandler)
+        val mediaSourceFactory = DefaultMediaSourceFactory(
+            dataSourceFactory,
+            DefaultExtractorsFactory().withAssMkvSupport(assParserFactory, newAssHandler)
+        )
+        // .ass/.ssa files are parsed by libass; every other format keeps media3's default parser.
+        mediaSourceFactory.setSubtitleParserFactory(assParserFactory)
 
-        val newPlayer = ExoPlayer.Builder(this).build()
+        // Drop a previous overlay view so repeated initPlayer calls don't stack views.
+        playerView.subtitleView?.let { subtitleView ->
+            for (i in subtitleView.childCount - 1 downTo 0) {
+                if (subtitleView.getChildAt(i) is AssSubtitleView) subtitleView.removeViewAt(i)
+            }
+        }
+
+        val newPlayer = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .setRenderersFactory(DefaultRenderersFactory(this).withAssSupport(newAssHandler))
+            .build()
+        playerView.subtitleView?.withAssSupport(newAssHandler)
+        newAssHandler.init(newPlayer)
+        assHandler = newAssHandler
         player = newPlayer
         playerView.player = newPlayer
 
@@ -199,40 +241,24 @@ class PlayerActivity : AppCompatActivity() {
             )
         )
 
+        val mediaItemBuilder = MediaItem.Builder().setUri(mpdUrl)
         if (subtitleUrl.isNotEmpty()) {
-            loadingBar.visibility = View.VISIBLE
-            CoroutineScope(Dispatchers.IO).launch {
-                val srtContent = downloadAndConvertSubtitle(subtitleUrl, client)
-                var tempFile: java.io.File? = null
-                if (srtContent.isNotEmpty()) {
-                    tempFile = java.io.File(cacheDir, "sub_${currentEpisodeUrl.hashCode()}.srt")
-                    tempFile.writeText(srtContent)
-                }
-                withContext(Dispatchers.Main) {
-                    loadingBar.visibility = View.GONE
-                    if (tempFile != null) {
-                        val srtUri = android.net.Uri.fromFile(tempFile)
-                        val subDataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(this@PlayerActivity)
-                        val subItem = MediaItem.SubtitleConfiguration.Builder(srtUri)
-                            .setMimeType(MimeTypes.APPLICATION_SUBRIP)
-                            .setLanguage("ja")
-                            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
-                            .build()
-                        val subSource = SingleSampleMediaSource.Factory(subDataSourceFactory)
-                            .createMediaSource(subItem, C.TIME_UNSET)
-                        newPlayer.setMediaSource(MergingMediaSource(dashSource, subSource))
-                    } else {
-                        newPlayer.setMediaSource(dashSource)
-                    }
-                    newPlayer.prepare()
-                    newPlayer.playWhenReady = true
-                }
-            }
-        } else {
-            newPlayer.setMediaSource(dashSource)
-            newPlayer.prepare()
-            newPlayer.playWhenReady = true
+            // Hand the subtitle file URL straight to libass/media3: no download, no conversion.
+            mediaItemBuilder.setSubtitleConfigurations(
+                listOf(
+                    MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(subtitleUrl))
+                        .setMimeType(subtitleMimeType(subtitleUrl))
+                        .setId(ASS_SUBTITLE_ID)
+                        .setLanguage("und")
+                        .setLabel("Subtitle")
+                        .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                        .build()
+                )
+            )
         }
+        newPlayer.setMediaItem(mediaItemBuilder.build())
+        newPlayer.prepare()
+        newPlayer.playWhenReady = true
 
         newPlayer.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -256,20 +282,10 @@ class PlayerActivity : AppCompatActivity() {
         })
     }
 
-    private fun downloadAndConvertSubtitle(url: String, client: OkHttpClient): String {
-        return try {
-            val req = Request.Builder().url(url)
-                .header("Referer", referer)
-                .header("User-Agent", "Mozilla/5.0")
-                .build()
-            val response = client.newCall(req).execute()
-            val body = response.body?.string() ?: return ""
-            if (url.endsWith(".ass", ignoreCase = true) || url.endsWith(".ssa", ignoreCase = true)) {
-                AssToSrtConverter.convert(body)
-            } else {
-                body // SRT/VTT: pasar directo
-            }
-        } catch (e: Exception) { "" }
+    private fun subtitleMimeType(url: String): String = when {
+        url.endsWith(".ass", ignoreCase = true) || url.endsWith(".ssa", ignoreCase = true) -> MimeTypes.TEXT_SSA
+        url.endsWith(".vtt", ignoreCase = true) -> MimeTypes.TEXT_VTT
+        else -> MimeTypes.APPLICATION_SUBRIP
     }
 
     private fun loadEpisode(item: VideoItem, newIndex: Int) {
@@ -288,6 +304,8 @@ class PlayerActivity : AppCompatActivity() {
                     loadingBar.visibility = View.GONE
                     if (result != null) {
                         player?.release()
+                        assHandler?.release()
+                        assHandler = null
                         initPlayer(result.first, result.second, item.url)
                         checkSavedPosition()
                         checkLikedState(item.url)

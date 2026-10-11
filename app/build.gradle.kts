@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.hstream.android"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.hstream.android"
@@ -67,8 +67,14 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-process:2.7.0")
 
     // Media3 - Reproductor integrado
-    implementation("androidx.media3:media3-exoplayer:1.3.1")
-    implementation("androidx.media3:media3-exoplayer-dash:1.3.1")
-    implementation("androidx.media3:media3-ui:1.3.1")
-    implementation("androidx.media3:media3-datasource-okhttp:1.3.1")
+    implementation("androidx.media3:media3-exoplayer:1.8.0")
+    implementation("androidx.media3:media3-exoplayer-dash:1.8.0")
+    implementation("androidx.media3:media3-ui:1.8.0")
+    implementation("androidx.media3:media3-datasource-okhttp:1.8.0")
+
+    // libass (.ass/.ssa) rendering for the integrated player. ass-media pulls the native
+    // libs (libass + libasskt per ABI) through ass-kt; declared explicitly so ass-media's
+    // public API types resolve at compile time.
+    implementation("io.github.peerless2012:ass-media:0.5.1")
+    implementation("io.github.peerless2012:ass-kt:0.5.1")
 }

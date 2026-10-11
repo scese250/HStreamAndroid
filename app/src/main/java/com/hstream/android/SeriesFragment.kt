@@ -390,7 +390,7 @@ class BlurTransformation(private val context: android.content.Context, private v
         blurScript.setInput(bitmapAlloc)
         val outAlloc = android.renderscript.Allocation.createTyped(rs, bitmapAlloc.type)
         blurScript.forEach(outAlloc)
-        val outBitmap = android.graphics.Bitmap.createBitmap(input.width, input.height, input.config)
+        val outBitmap = android.graphics.Bitmap.createBitmap(input.width, input.height, input.config ?: android.graphics.Bitmap.Config.ARGB_8888)
         outAlloc.copyTo(outBitmap)
         rs.destroy()
         return outBitmap

@@ -1,3 +1,6 @@
 .freebuff/desktop.db-wal
 .freebuff/desktop.db-shm
 .freebuff/desktop.db
+build/
+.gradle/
+local.properties
